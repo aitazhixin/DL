@@ -16,7 +16,7 @@ namespace slqDL {
 #define LoopError           (0.001)            //
 #define EspCNN              (1e-8)             //
 
-	/** Raw Data Parameters **/
+    /** Raw Data Parameters **/
 #define TrainImgNum          (60000)            // Train Image Number
 #define TestImgNum           (10000)            // Test Image Number
 #define RawImgRow            (28)               // Raw Image Row
@@ -144,90 +144,89 @@ private:
 
 private:
 
+    double c1map[c1MapSize];
+    double c1bias[c1MapNum];
+    double c1conv[c1optNum];
+    double c1bias_dt[c1MapNum];
+    double c1bias_Edt[c1MapNum];
+    double c1conv_dt[c1optNum];
+    double c1conv_Edt[c1optNum];
+    double c1delta[c1MapSize];
 
-	double c1map[c1MapSize];
-	double c1bias[c1MapNum];
-	double c1conv[c1optNum];
-	double c1bias_dt[c1MapNum];
-	double c1bias_Edt[c1MapNum];
-	double c1conv_dt[c1optNum];
-	double c1conv_Edt[c1optNum];
-	double c1delta[c1MapSize];
+    double s2map[s2MapSize];
+    double s2bias[s2MapNum];
+    double s2pool[s2MapNum];
+    double s2bias_dt[s2MapNum];
+    double s2bias_Edt[s2MapNum];
+    double s2pool_dt[s2MapNum];
+    double s2pool_Edt[s2MapNum];
+    double s2delta[s2MapSize];
 
-	double s2map[s2MapSize];
-	double s2bias[s2MapNum];
-	double s2pool[s2MapNum];
-	double s2bias_dt[s2MapNum];
-	double s2bias_Edt[s2MapNum];
-	double s2pool_dt[s2MapNum];
-	double s2pool_Edt[s2MapNum];
-	double s2delta[s2MapSize];
+    double c3map[c3MapSize];
+    double c3bias[c3MapNum];
+    double c3conv[c3optNum];
+    double c3bias_dt[c3MapNum];
+    double c3bias_Edt[c3MapNum];
+    double c3conv_dt[c3optNum];
+    double c3conv_Edt[c3optNum];
+    double c3delta[c3MapSize];
 
-	double c3map[c3MapSize];
-	double c3bias[c3MapNum];
-	double c3conv[c3optNum];
-	double c3bias_dt[c3MapNum];
-	double c3bias_Edt[c3MapNum];
-	double c3conv_dt[c3optNum];
-	double c3conv_Edt[c3optNum];
-	double c3delta[c3MapSize];
+    double s4map[s4MapSize];
+    double s4bias[s4MapNum];
+    double s4pool[s4MapNum];
+    double s4bias_dt[s4MapNum];
+    double s4bias_Edt[s4MapNum];
+    double s4pool_dt[s4MapNum];
+    double s4pool_Edt[s4MapNum];
+    double s4delta[s4MapSize];
 
-	double s4map[s4MapSize];
-	double s4bias[s4MapNum];
-	double s4pool[s4MapNum];
-	double s4bias_dt[s4MapNum];
-	double s4bias_Edt[s4MapNum];
-	double s4pool_dt[s4MapNum];
-	double s4pool_Edt[s4MapNum];
-	double s4delta[s4MapSize];
+    double c5map[c5MapSize];
+    double c5bias[c5MapNum];
+    double c5conv[c5optNum];
+    double c5bias_dt[c5MapNum];
+    double c5bias_Edt[c5MapNum];
+    double c5conv_dt[c5optNum];
+    double c5conv_Edt[c5optNum];
+    double c5delta[c5MapSize];
 
-	double c5map[c5MapSize];
-	double c5bias[c5MapNum];
-	double c5conv[c5optNum];
-	double c5bias_dt[c5MapNum];
-	double c5bias_Edt[c5MapNum];
-	double c5conv_dt[c5optNum];
-	double c5conv_Edt[c5optNum];
-	double c5delta[c5MapSize];
+    double outmap[outMapSize];
+    double outbias[outMapSize];
+    double outfullconn[outoptNum];
+    double outbias_dt[outMapSize];
+    double outbias_Edt[outMapSize];
+    double outfull_dt[outoptNum];
+    double outfull_Edt[outoptNum];
+    double outdelta[outMapSize];
 
-	double outmap[outMapSize];
-	double outbias[outMapSize];
-	double outfullconn[outoptNum];
-	double outbias_dt[outMapSize];
-	double outbias_Edt[outMapSize];
-	double outfull_dt[outoptNum];
-	double outfull_Edt[outoptNum];
-	double outdelta[outMapSize];
-
-	double label[outMapSize];
+    double label[outMapSize];
 
     char *trainImg;
     char *trainLabel;
     char *testImg;
     char *testLabel;
 
-	double *trainData;
-	double *testData;
+    double *trainData;
+    double *testData;
 
-	double *inmap;
+    double *inmap;
     char *tstLabelPtr;
     char *curLabelPtr;
     bool inited = false;
-	bool trainInit = false;
-	bool testInit = false;
+    bool trainInit = false;
+    bool testInit = false;
 
-	int mIdx;
-	int hIdx;
-	int vIdx;
-	int chIdx;
-	int cvIdx;
+    int mIdx;
+    int hIdx;
+    int vIdx;
+    int chIdx;
+    int cvIdx;
 
-	int layermulti;
-	int hmulti;
+    int layermulti;
+    int hmulti;
 
-	LARGE_INTEGER StartCount;
-	LARGE_INTEGER EndCount;
-	LARGE_INTEGER CountFreq;
+    LARGE_INTEGER StartCount;
+    LARGE_INTEGER EndCount;
+    LARGE_INTEGER CountFreq;
 };
 } // end namespace slqDL
 
