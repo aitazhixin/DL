@@ -9,6 +9,7 @@
 **/
 
 namespace slqDL {
+namespace slqLeNet5 {
 /** Train Parameters **/
 #define EpochLoop           (100)              // Train Loops
 #define AccuracyRate        (0.99)             // Train Accuracy
@@ -108,8 +109,8 @@ public:
 
     void init();
     void train();
-	void predict();
-	void checkimg();
+    void predict();
+    void checkimg();
 
 private:
     void initMap();
@@ -128,18 +129,18 @@ private:
     void BackwardC1();
 
     void UpgradeNetwork();
-	void UpdateParameters(double *delta, double *Edelta, double *para, int len);
+    void UpdateParameters(double *delta, double *Edelta, double *para, int len);
 
     double test();
 
     void SaveParameters();
-	void ReadParameters();
+    void ReadParameters();
     void RandomBias(double *randVector, int vLen);
-	void ProduceLabel();
-	void RegularMap(char *cmap, double *mapdata);
+    void ProduceLabel();
+    void RegularMap(char *cmap, double *mapdata);
 
-	void uniform_rand(double* src, int len, double min, double max);
-	double uniform_rand(double min, double max);
+    void uniform_rand(double* src, int len, double min, double max);
+    double uniform_rand(double min, double max);
 
 
 private:
@@ -228,6 +229,7 @@ private:
     LARGE_INTEGER EndCount;
     LARGE_INTEGER CountFreq;
 };
+} // end namespace slqLeNet5
 } // end namespace slqDL
 
 #endif
