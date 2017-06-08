@@ -126,5 +126,5 @@ namespace slqDL {
 } // end namespace slqDL
 
 
-#endif // #ifndef __SLQ_ALEX_NET_H__
+#endif // #ifndef __SLQ_NET_MACRO_H__
 
