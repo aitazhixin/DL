@@ -14,6 +14,7 @@
 using namespace std;
 
 namespace slqDL {
+namespace slqLeNet5 {
     slqLeNet5::~slqLeNet5()
     {
         if (trainImg)
@@ -386,10 +387,10 @@ namespace slqDL {
     {
         for (mIdx = 0; mIdx < c1MapNum; mIdx++)
         {
-			layermulti = mIdx*f1MapSize;
+            layermulti = mIdx*f1MapSize;
             for (hIdx = 0; hIdx < c1MapHigh; hIdx++)
             {
-				hmulti = hIdx*c1MapWidth;
+                hmulti = hIdx*c1MapWidth;
                 for (vIdx = 0; vIdx < c1MapWidth; vIdx++)
                 {
                     double *curmap = c1map + layermulti + hmulti + vIdx;
@@ -913,5 +914,5 @@ namespace slqDL {
         std::uniform_real_distribution<double> dst(min, max);
         return dst(gen);
     }
-
+}
 }
