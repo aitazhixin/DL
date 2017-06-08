@@ -4,7 +4,7 @@
 #include "slqLeNet5.h"
 
 using namespace std;
-using namespace slqDL;
+using namespace slqDL::slqLeNet5;
 
 int main()
 {
@@ -16,11 +16,11 @@ int main()
     cout << "Training ..." << endl;
     cnnNet.train();
 
-	//cout << "predict ..." << endl;
-	//cnnNet.predict();
+    //cout << "predict ..." << endl;
+    //cnnNet.predict();
 
-	//cout << "checking ..." << endl;
-	//cnnNet.checkimg();
+    //cout << "checking ..." << endl;
+    //cnnNet.checkimg();
 
 
 	return 0;
