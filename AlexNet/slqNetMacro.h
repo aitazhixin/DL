@@ -1,6 +1,8 @@
 // AlexNet define
 #ifndef __SLQ_ALEX_NET_H__
 #define __SLQ_ALEX_NET_H__
+
+#include <cmath>
 namespace slqDL {
   namespace slqAlexNet{
     
@@ -116,6 +118,9 @@ namespace slqDL {
     
 #define f3UnitNum                    (1000)
 #define f3ConnNum                    (4096000)                       // 4096*1000
+    
+#define ACTIVATION(x)                ((std::exp((x)) - std::exp(-1*(x))) / (std::exp((x)) + std::exp(-1*(x))))
+#define ACTDEVICE(x)                 ((1 - ((x))*((x))))
     
   } // end namespace slqAlexNet
 } // end namespace slqDL
