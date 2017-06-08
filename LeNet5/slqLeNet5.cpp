@@ -177,7 +177,6 @@ namespace slqDL {
 
 		double maxV = -10;
 		int maxIdx = -1;
-
 		
 		ReadParameters();
 
