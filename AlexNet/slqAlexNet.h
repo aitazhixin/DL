@@ -17,8 +17,9 @@ namespace slqDL {
             void predict();
             
         private:
-            void deletevar(float *var);
+            void deletevar(float **var);
             void initParm();
+            void newParam();
             void ForwardC1();
             void ForwardS1();
             void ForwardC2();
@@ -58,6 +59,7 @@ namespace slqDL {
             float uniform_rand(float min, float max);
             
         private:
+            float *mlabel;
             float *inMap;
             float *c1Map;
             float *s1Map;
@@ -88,7 +90,7 @@ namespace slqDL {
             float *c2Bias;
             float *s2Bias;
             float *c3Bias;
-            flaot *c4Bias;
+            float *c4Bias;
             float *c5Bias;
             float *s5Bias;
             float *f1Bias;
@@ -124,7 +126,7 @@ namespace slqDL {
             float *c2BiasDt;
             float *s2BiasDt;
             float *c3BiasDt;
-            flaot *c4BiasDt;
+            float *c4BiasDt;
             float *c5BiasDt;
             float *s5BiasDt;
             float *f1BiasDt;
@@ -148,7 +150,7 @@ namespace slqDL {
             float *c2BiasEDt;
             float *s2BiasEDt;
             float *c3BiasEDt;
-            flaot *c4BiasEDt;
+            float *c4BiasEDt;
             float *c5BiasEDt;
             float *s5BiasEDt;
             float *f1BiasEDt;
