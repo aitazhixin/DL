@@ -8,9 +8,9 @@ namespace slqDL {
     
 #define EpochLoop           (100)
 #define AccuracyRate        (0.99)
-#define Alpha               (0.01)
-#define LoopError           (0.001)
-#define EspCNN              (1e-8)
+#define Alpha               (0.01f)
+#define LoopError           (0.001f)
+#define EspCNN              (1e-8f)
     
 #define poolSpace                    (3)
 #define poolStride                   (2)
@@ -35,11 +35,11 @@ namespace slqDL {
 #define c1ConvNum                    (96)
 #define c1ConvUNum                   (34848)                          // 11*11*3*96
     
-#define s1MapHigh                    (27)
-#define s1MapWidth                   (27)
+#define s1MapHigh                    (31)                            // 27*1 + (5-1)
+#define s1MapWidth                   (31)                            // 27*1 + (5-1)
 #define s1MapNum                     (96)
-#define s1MapSize                    (729)                           // 27*27
-#define s1UnitNum                    (69984)                         // 27*27*96
+#define s1MapSize                    (961)                           // 31*31
+#define s1UnitNum                    (92256)                         // 31*31*96
     
 #define c2MapHigh                    (27)
 #define c2MapWidth                   (27)
@@ -55,17 +55,17 @@ namespace slqDL {
 #define c2ConvNum                    (256)
 #define c2ConvUNum                   (307200)                        // 5*5*48*256
     
-#define s2MapHigh                    (13)
-#define s2MapWidth                   (13)
+#define s2MapHigh                    (15)                            // 13*1 + (3-1)
+#define s2MapWidth                   (15)                            // 13*1 + (3-1)
 #define s2MapNum                     (256)
-#define s2MapSize                    (169)                           // 13*13
-#define s2UnitNum                    (43264)                         // 13*13*256
+#define s2MapSize                    (225)                           // 15*15
+#define s2UnitNum                    (57600)                         // 15*15*256
     
-#define c3MapHigh                    (13)
-#define c3MapWidth                   (13)
+#define c3MapHigh                    (15)                            // 13*1 + (3-1)
+#define c3MapWidth                   (15)                            // 13*1 + (3-1)
 #define c3MapNum                     (384)
-#define c3MapSize                    (169)                           // 13*13
-#define c3UnitNum                    (64896)                         // 13*13*384
+#define c3MapSize                    (225)                           // 15*15
+#define c3UnitNum                    (86400)                         // 15*15*384
     
 #define c3ConvHigh                   (3)
 #define c3ConvWidth                  (3)
@@ -76,11 +76,11 @@ namespace slqDL {
 #define c3ConvUNum                   (884736)                        // 3*3*256*384
     
 
-#define c4MapHigh                    (13)
-#define c4MapWidth                   (13)
+#define c4MapHigh                    (15)                            // 13*1 + (3-1)
+#define c4MapWidth                   (15)                            // 13*1 + (3-1)
 #define c4MapNum                     (384)
-#define c4MapSize                    (169)                           // 13*13
-#define c4UnitNum                    (64896)                         // 13*13*384
+#define c4MapSize                    (225)                           // 15*15
+#define c4UnitNum                    (86400)                         // 15*15*384
     
 #define c4ConvHigh                   (3)
 #define c4ConvWidth                  (3)
