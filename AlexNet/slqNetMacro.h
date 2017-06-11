@@ -4,13 +4,13 @@
 
 #include <cmath>
 namespace slqDL {
-  namespace slqAlexNet{
+  namespace slqAlexNet {
     
-#define EpochLoop           (100)
-#define AccuracyRate        (0.99)
-#define Alpha               (0.01f)
-#define LoopError           (0.001f)
-#define EspCNN              (1e-8f)
+#define EpochLoop                    (100)
+#define AccuracyRate                 (0.99)
+#define Alpha                        (0.01f)
+#define LoopError                    (0.001f)
+#define EspCNN                       (1e-8f)
     
 #define poolSpace                    (3)
 #define poolStride                   (2)
@@ -122,7 +122,7 @@ namespace slqDL {
 #define ACTIVATION(x)                ((std::exp((x)) - std::exp(-1*(x))) / (std::exp((x)) + std::exp(-1*(x))))
 #define ACTDEVICE(x)                 ((1 - ((x))*((x))))
     
-  } // end namespace slqAlexNet
+    } // end namespace slqAlexNet
 } // end namespace slqDL
 
 

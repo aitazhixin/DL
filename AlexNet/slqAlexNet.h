@@ -4,7 +4,7 @@
 #include "slqNetMacro.h"
 
 namespace slqDL {
-    namespace slqAlexNet{
+    namespace slqAlexNet {
         class slqAlexNet {
         public:
             slqAlexNet() = default;
