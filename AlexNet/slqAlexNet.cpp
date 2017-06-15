@@ -1,19 +1,25 @@
 
 
 #include <iostream>
-#include <fstream>
+#include <fstream>				  
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 
 #include "slqAlexNet.h"
 
 using namespace std;
+using namespace cv;
 
 namespace slqDL {
     namespace slqAlexNet {
 
         slqAlexNet::~slqAlexNet()
         {
+            if (inRaw)
+            {
+                delete inRaw;
+                inRaw = nullptr;
+            }
             deletevar(&mlabel);
             deletevar(&inMap);
             deletevar(&c1Map);
@@ -120,34 +126,124 @@ namespace slqDL {
 
         void slqAlexNet::train()
         {
+            int epo;
+            int ipo = 0;
+            float acc = 0.0f;
+            ifstream trainStream;
+            ifstream trainlabel;
 
-            ForwardC1();
-            ForwardS1();
-            ForwardC2();
-            ForwardS2();
-            ForwardC3();
-            ForwardC4();
-            ForwardC5();
-            ForwardS5();
-            ForwardF1();
-            ForwardF2();
-            ForwardF3();
+            for (epo = 0; epo < EpochLoop; epo++)
+            {
+                trainStream.open("imgTrainArray", ifstream::in | ifstream::binary);
+                trainlabel.open("imgTrainLabel", ifstream::in | ifstream::binary);
+                if ((!trainStream) || (!trainlabel))
+                {
+                    if (trainStream)
+                        trainStream.close();
+                    if (trainlabel)
+                        trainlabel.close();
+                    cout << "There does not exist train data" << endl;
+                    return;
+                }
 
-            BackwardF3();
-            BackwardF2();
-            BackwardF1();
-            BackwardS5();
-            BackwardC5();
-            BackwardC4();
-            BackwardC3();
-            BackwardS2();
-            BackwardC2();
-            BackwardS1();
-            BackwardC1();
+                while (EOF != trainStream.peek())
+                {
+                    trainStream.read(inRaw, sizeof(char)*inUnitNum);
+                    trainlabel.read(&curLabl, sizeof(char));
 
-            UpgradeNetwork();
+                    //Mat img(227, 227, CV_8UC1);
+                    //memcpy((char*)img.data, inRaw, 227*227);
+                    //cv::namedWindow("inRaw");
+                    //cv::imshow("inRaw", img);
+                    //cv::waitKey(0);
 
-            test();
+                    //memcpy((char*)img.data, inRaw + 227*227, 227 * 227);
+                    //cv::namedWindow("inRaw");
+                    //cv::imshow("inRaw", img);
+                    //cv::waitKey(0);
+
+                    //memcpy((char*)img.data, inRaw + 227*227*2, 227 * 227);
+                    //cv::namedWindow("inRaw");
+                    //cv::imshow("inRaw", img);
+                    //cv::waitKey(0);
+
+                    ProduceLabel();
+                    RegularMap(inRaw, inMap);
+
+                    ForwardC1();
+                    ForwardS1();
+                    ForwardC2();
+                    ForwardS2();
+                    ForwardC3();
+                    ForwardC4();
+                    ForwardC5();
+                    ForwardS5();
+                    ForwardF1();
+                    ForwardF2();
+                    ForwardF3();
+
+                    BackwardF3();
+                    BackwardF2();
+                    BackwardF1();
+                    BackwardS5();
+                    BackwardC5();
+                    BackwardC4();
+                    BackwardC3();
+                    BackwardS2();
+                    BackwardC2();
+                    BackwardS1();
+                    BackwardC1();
+
+                    UpgradeNetwork();
+
+                    ipo++;
+                }
+
+                trainlabel.close();
+                trainStream.close();
+
+                acc = test();
+                cout << "epoch " << epo << " accuracy " << acc << endl;
+
+                if (acc >= AccuracyRate)
+                {
+                    cout << "Save Params ..." << endl;
+                    SaveParameters();
+                }
+                else if (acc < 0)
+                {
+                    return;
+                }
+            }
+
+            if (EpochLoop == epo)
+            {
+                cout << "End loop, Save Params" << endl;
+                SaveParameters();
+            }
+
+        }
+
+        void slqAlexNet::CreateConv3Table()
+        {
+            int oIdx;
+            int iIdx;
+#define AO true
+#define AX false
+            for (oIdx = 0; oIdx < c3ConvNum; oIdx++)
+            {
+                for (iIdx = 0; iIdx < c3ConvDeep; iIdx++)
+                {
+                    if ((iIdx > oIdx) && (iIdx < oIdx + 5))
+                    {
+                        CONV3Table[oIdx][iIdx] = AX;
+                        continue;
+                    }
+                    CONV3Table[oIdx][iIdx] = AO;
+                }
+            }
+#undef AO
+#undef AX
         }
 
 
@@ -179,15 +275,17 @@ namespace slqDL {
             uniform_rand(f3Conn, f3ConnNum, 0.f, 0.f);
 
             // 2th, 4th, 5th conv bias set to 1
-            std::fill(c2Bias, c2Bias + c2MapNum, 1.0f);
-            std::fill(c4Bias, c4Bias + c4MapNum, 1.0f);
-            std::fill(c5Bias, c5Bias + c5MapNum, 1.0f);
+            //std::fill(c2Bias, c2Bias + c2MapNum, 1.0f);
+            //std::fill(c4Bias, c4Bias + c4MapNum, 1.0f);
+            //std::fill(c5Bias, c5Bias + c5MapNum, 1.0f);
 
         }
+
 
         void slqAlexNet::newParam()
         {
             mlabel = new float[f3UnitNum]();
+            inRaw = new char[inUnitNum]();
             inMap = new float[inUnitNum]();
             c1Map = new float[c1UnitNum]();
             s1Map = new float[s1UnitNum]();
@@ -249,6 +347,7 @@ namespace slqDL {
             f2ConnDt = new float[f2ConnNum]();
             f3ConnDt = new float[f3ConnNum]();
 
+
             c1BiasDt = new float[c1MapNum]();
             s1BiasDt = new float[s1MapNum]();
             c2BiasDt = new float[c2MapNum]();
@@ -289,440 +388,105 @@ namespace slqDL {
 
         void slqAlexNet::ForwardC1()
         {
-            int odeepIdx = 0;
-            int ideepIdx = 0;
-            int ohIdx = 0;
-            int owIdx = 0;
-            int ihIdx = 0;
-            int iwIdx = 0;
-            int cvhIdx = 0;
-            int cvwIdx = 0;
-
-            int odh;
-            int iod;
-            int vdh;
-            int ivd;
+            int params[] = {inMapNum, c1MapNum, inMapHigh, inMapWidth, c1MapHigh, c1MapWidth, c1ConvHigh, c1ConvWidth, c1ConvStride, 0 };
 
             std::fill(c1Map, c1Map + c1UnitNum, 0.f);
-            for (odeepIdx = 0; odeepIdx < c1MapNum; odeepIdx++)
-            {
-                for (ohIdx = 0; ohIdx < c1MapHigh; ohIdx++)
-                {
-                    odh = odeepIdx * c1MapSize + ohIdx * c1MapWidth;
-                    for (owIdx = 0; owIdx < c1MapWidth; owIdx++)
-                    {
-                        float *curmap = c1Map + odh + owIdx;                                     // (h, w, d) first convolution output
-                        for (ideepIdx = 0; ideepIdx < c1ConvDeep; ideepIdx++)
-                        {
-                            iod = odeepIdx * c1ConvSize + ideepIdx * c1ConvHigh * c1ConvWidth;
-                            for (cvhIdx = 0; cvhIdx < c1ConvHigh; cvhIdx++)
-                            {
-                                vdh = iod + cvhIdx * c1ConvWidth;
-                                ivd = ideepIdx * inMapSize + (ohIdx * c1ConvStride + cvhIdx) * c1ConvWidth + owIdx * c1ConvStride;
-                                for (cvwIdx = 0; cvwIdx < c1ConvWidth; cvwIdx++)
-                                {
-                                    float *curin = inMap + ivd + cvwIdx;
-
-                                    *curmap += *curin * c1Conv[vdh + cvwIdx];
-                                }
-                            }
-                        }
-
-                        *curmap += c1Bias[odeepIdx];
-
-                        *curmap = ACTIVATION(*curmap);
-                    }
-                }
-            }
+            ConvolutionOpt(inMap, c1Map, c1Conv, c1Bias, params);
         }
 
 
         void slqAlexNet::ForwardS1()
         {
-            int odeepIdx;
-            int ohIdx;
-            int owIdx;
-            int shIdx;
-            int swIdx;
+            int params[] = {s1MapNum, c1MapHigh, c1MapWidth, s1MapHigh, s1MapWidth, poolSpace, poolStride, 2};
 
-            int odh;
-            int sdh;
-
+            float tmp[c1UnitNum];
+            memcpy((char*)tmp, (char*)c1Map, sizeof(float)*c1UnitNum);
+            
             std::fill(s1Map, s1Map + s1UnitNum, 0.f);
-            for (odeepIdx = 0; odeepIdx < s1MapNum; odeepIdx++)
-            {
-                for (ohIdx = 2; ohIdx < s1MapHigh - 2; ohIdx++)
-                {
-                    odh = odeepIdx * s1MapSize + ohIdx * s1MapWidth;
-                    sdh = odeepIdx * c1MapSize + (ohIdx - 2) * poolStride * c1MapWidth;
-                    for (owIdx = 2; owIdx < s1MapWidth - 2; owIdx++)
-                    {
-                        float *curmap = s1Map + odh + owIdx;
-                        float *curin = c1Map + sdh + (owIdx - 2) * poolStride;
-                        for (shIdx = 0; shIdx < poolSpace; shIdx++)
-                        {
-                            for (swIdx = 0; swIdx < poolSpace; swIdx++)
-                            {
-                                *curmap += *curin + shIdx * c1MapWidth + swIdx;
-                            }
-                        }
-
-                        *curmap = *curmap / (poolSpace * poolSpace) * s1Pool[odeepIdx] + s1Bias[odeepIdx];
-                        *curmap = ACTIVATION(*curmap);
-                    }
-                }
-            }
+            PoolingOpt(c1Map, s1Map, s1Pool, s1Bias, params);
         }
 
 
         void slqAlexNet::ForwardC2()
         {
-            int odeepIdx;
-            int ohIdx;
-            int owIdx;
-            int ideepIdx;
-            int cvhIdx;
-            int cvwIdx;
+            int params[] = { s1MapNum / 2, c2MapNum / 2, s1MapHigh, s1MapWidth, c2MapHigh, c2MapWidth, c2ConvHigh, c2ConvWidth, c2ConvStride, 0 };
 
-            int odh;
-            int ioh;
-            int vod;
+            float tmp[s1UnitNum];
+            memcpy((char*)tmp, (char*)s1Map, sizeof(float)*s1UnitNum);
 
             std::fill(c2Map, c2Map + c2UnitNum, 0.f);
-            for (odeepIdx = 0; odeepIdx < c2MapNum / 2; odeepIdx++)
-            {
-                for (ohIdx = 0; ohIdx < c2MapHigh; ohIdx++)
-                {
-                    odh = odeepIdx * c2MapSize + ohIdx * c2ConvStride * c2MapHigh;
-                    for (owIdx = 0; owIdx < c2MapWidth; owIdx++)
-                    {
-                        float *curmap = c2Map + odh + owIdx * c2ConvStride;
-                        for (ideepIdx = 0; ideepIdx < c2ConvDeep; ideepIdx++)
-                        {
-                            ioh = odeepIdx * c2ConvSize + ideepIdx * c2ConvHigh * c2ConvWidth;
-                            float *curin = s1Map + ideepIdx * s1MapSize + ohIdx * s1MapWidth + owIdx;
+            ConvolutionOpt(s1Map, c2Map, c2Conv, c2Bias, params);
 
-                            for (cvhIdx = 0; cvhIdx < c2ConvHigh; cvhIdx++)
-                            {
-                                vod = ioh + cvhIdx * c2ConvWidth;
-                                for (cvwIdx = 0; cvwIdx < c2ConvWidth; cvwIdx++)
-                                {
-                                    *curmap += *(curin + cvhIdx * s1MapWidth + cvwIdx) * c2Conv[vod + cvwIdx];
-                                }
-                            }
-                        }
+            ConvolutionOpt(s1Map + s1MapNum / 2 * s1MapSize, c2Map + c2MapNum / 2 * c2MapSize, c2Conv + c2MapNum / 2 * c2ConvSize, c2Bias + c2MapNum / 2, params);
 
-                        *curmap += c2Bias[odeepIdx];
-                        *curmap = ACTIVATION(*curmap);
-                    }
-                }
-            }
-
-            for (odeepIdx = c2MapNum / 2; odeepIdx < c2MapNum; odeepIdx++)
-            {
-                for (ohIdx = 0; ohIdx < c2MapHigh; ohIdx++)
-                {
-                    odh = odeepIdx * c2MapSize + ohIdx * c2ConvStride * c2MapHigh;
-                    for (owIdx = 0; owIdx < c2MapWidth; owIdx++)
-                    {
-                        float *curmap = c2Map + odh + owIdx * c2ConvStride;
-                        for (ideepIdx = c2ConvDeep; ideepIdx < s1MapNum; ideepIdx++)
-                        {
-                            ioh = odeepIdx * c2ConvSize + (ideepIdx - c2ConvDeep) * c2ConvHigh * c2ConvWidth;
-                            float *curin = s1Map + ideepIdx * s1MapSize + ohIdx * s1MapWidth + owIdx;
-
-                            for (cvhIdx = 0; cvhIdx < c2ConvHigh; cvhIdx++)
-                            {
-                                vod = ioh + cvhIdx * c2ConvWidth;
-                                for (cvwIdx = 0; cvwIdx < c2ConvWidth; cvwIdx++)
-                                {
-                                    *curmap += *(curin + cvhIdx * s1MapWidth + cvwIdx) * c2Conv[vod + cvwIdx];
-                                }
-                            }
-                        }
-
-                        *curmap += c2Bias[odeepIdx];
-                        *curmap = ACTIVATION(*curmap);
-                    }
-                }
-            }
         }
 
 
         void slqAlexNet::ForwardS2()
         {
-            int odeepIdx;
-            int ohIdx;
-            int owIdx;
-            int shIdx;
-            int swIdx;
+            int params[] = { s2MapNum, c2MapHigh, c2MapWidth, s2MapHigh, s2MapWidth, poolSpace, poolStride, 1 };
 
-            int odh;
-            int sdh;
+            float tmp[c2UnitNum];
+            memcpy((char*)tmp, (char*)c2Map, sizeof(float)*c2UnitNum);
 
             std::fill(s2Map, s2Map + s2UnitNum, 0.f);
-            for (odeepIdx = 0; odeepIdx < s2MapNum; odeepIdx++)
-            {
-                for (ohIdx = 1; ohIdx < s2MapHigh - 1; ohIdx++)
-                {
-                    odh = odeepIdx * s2MapSize + ohIdx * s2MapWidth;
-                    sdh = odeepIdx * c2MapSize + (ohIdx - 1) * poolStride * c2MapWidth;
-
-                    for (owIdx = 1; owIdx < s2MapWidth - 1; owIdx++)
-                    {
-                        float *curmap = s2Map + odh + owIdx;
-                        float *curin = c2Map + sdh + (owIdx - 1) * poolStride;
-                        for (shIdx = 0; shIdx < poolSpace; shIdx++)
-                        {
-                            for (swIdx = 0; swIdx < poolSpace; swIdx++)
-                            {
-                                *curmap += *curin + shIdx * c2MapWidth + swIdx;
-                            }
-                        }
-
-                        *curmap = *curmap / (poolSpace * poolSpace) * s2Pool[odeepIdx] + s2Bias[odeepIdx];
-                        *curmap = ACTIVATION(*curmap);
-                    }
-                }
-            }
+            PoolingOpt(c2Map, s2Map, s2Pool, s2Bias, params);
         }
 
 
         void slqAlexNet::ForwardC3()
         {
-            int odeepIdx;
-            int ohIdx;
-            int owIdx;
-            int ideepIdx;
-            int cvhIdx;
-            int cvwIdx;
+            int params[] = { s2MapNum, c3MapNum, s2MapHigh, s2MapWidth, c3MapHigh, c3MapWidth, c3ConvHigh, c3ConvWidth, c3ConvStride, 1 };
 
-            int ohd;
-            int iod;
-            int vod;
+            float tmp[s2UnitNum];
+            memcpy((char*)tmp, (char*)s2Map, sizeof(float)*s2UnitNum);
 
             std::fill(c3Map, c3Map + c3UnitNum, 0.f);
-            for (odeepIdx = 0; odeepIdx < c3MapNum; odeepIdx++)
-            {
-                for (ohIdx = 1; ohIdx < c3MapHigh - 1; ohIdx++)
-                {
-                    ohd = odeepIdx * c3MapSize + ohIdx * c3MapWidth;
-                    for (owIdx = 1; owIdx < c3MapWidth - 1; owIdx++)
-                    {
-                        float *curmap = c3Map + ohd + owIdx;
-                        for (ideepIdx = 0; ideepIdx < c3ConvDeep; ideepIdx++)
-                        {
-                            float *curin = s2Map + ideepIdx * s2MapSize + (ohIdx - 1) * c3ConvStride * s2MapWidth + (owIdx - 1) * c3ConvStride;
-                            iod = odeepIdx * c3ConvSize + ideepIdx * c3ConvHigh * c3ConvWidth;
-
-                            for (cvhIdx = 0; cvhIdx < c3ConvHigh; cvhIdx++)
-                            {
-                                vod = iod + cvhIdx * c3ConvWidth;
-                                for (cvwIdx = 0; cvwIdx < c3ConvWidth; cvwIdx++)
-                                {
-                                    *curmap += *(curin + cvhIdx * s2MapWidth + cvwIdx) * c3Conv[vod + cvwIdx];
-                                }
-                            }
-                        }
-
-                        *curmap += c3Bias[odeepIdx];
-
-                        *curmap = ACTIVATION(*curmap);
-                    }
-                }
-            }
+            ConvolutionOpt(s2Map, c3Map, c3Conv, c3Bias, params);            
 
         }
 
 
         void slqAlexNet::ForwardC4()
         {
-            int odeepIdx;
-            int ohIdx;
-            int owIdx;
-            int ideepIdx;
-            int cvhIdx;
-            int cvwIdx;
+            int params[] = { c3MapNum / 2, c4MapNum / 2, c3MapHigh, c3MapWidth, c4MapHigh, c4MapWidth, c4ConvHigh, c4ConvWidth, c4ConvStride, 1 };
 
-            int ohd;
-            int iod;
-            int vod;
+            float tmp[c3UnitNum];
+            memcpy((char*)tmp, (char*)c3Map, sizeof(float)*c3UnitNum);
 
             std::fill(c4Map, c4Map + c4UnitNum, 0.f);
-            for (odeepIdx = 0; odeepIdx < c4MapNum / 2; odeepIdx++)
-            {
-                for (ohIdx = 1; ohIdx < c4MapHigh - 1; ohIdx++)
-                {
-                    ohd = odeepIdx * c4MapSize + ohIdx * c4MapWidth;
-                    for (owIdx = 1; owIdx < c4MapWidth - 1; owIdx++)
-                    {
-                        float *curmap = c4Map + ohd + owIdx;
-                        for (ideepIdx = 0; ideepIdx < c4ConvDeep; ideepIdx++)
-                        {
-                            float *curin = c3Map + ideepIdx * c3MapSize + (ohIdx - 1) * c4ConvStride * c3MapWidth + (owIdx - 1) * c4ConvStride;
-                            iod = odeepIdx * c4ConvSize + ideepIdx * c4ConvHigh * c4ConvWidth;
+            ConvolutionOpt(c3Map, c4Map, c4Conv, c4Bias, params);
 
-                            for (cvhIdx = 0; cvhIdx < c4ConvHigh; cvhIdx++)
-                            {
-                                vod = iod + cvhIdx * c4ConvWidth;
-                                for (cvwIdx = 0; cvwIdx < c4ConvWidth; cvwIdx++)
-                                {
-                                    *curmap += *(curin + cvhIdx * c3MapWidth + cvwIdx) * c4Conv[vod + cvwIdx];
-                                }
-                            }
-                        }
+            ConvolutionOpt(c3Map + c3MapNum / 2 * c3MapSize, c4Map + c4MapNum / 2 * c4MapSize, c4Conv + c4MapNum / 2 * c4ConvSize, c4Bias + c4MapNum / 2, params);
 
-                        *curmap += c4Bias[odeepIdx];
-
-                        *curmap = ACTIVATION(*curmap);
-                    }
-                }
-            }
-
-            for (odeepIdx = c4MapNum / 2; odeepIdx < c4MapNum; odeepIdx++)
-            {
-                for (ohIdx = 1; ohIdx < c4MapHigh - 1; ohIdx++)
-                {
-                    ohd = odeepIdx * c4MapSize + ohIdx * c4MapWidth;
-                    for (owIdx = 1; owIdx < c4MapWidth - 1; owIdx++)
-                    {
-                        float *curmap = c4Map + ohd + owIdx;
-                        for (ideepIdx = c4ConvDeep; ideepIdx < c3MapNum; ideepIdx++)
-                        {
-                            float *curin = c3Map + ideepIdx * c3MapSize + (ohIdx - 1) * c4ConvStride * c3MapWidth + (owIdx - 1) * c4ConvStride;
-                            iod = odeepIdx * c4ConvSize + (ideepIdx - c4ConvDeep) * c4ConvHigh * c4ConvWidth;
-
-                            for (cvhIdx = 0; cvhIdx < c4ConvHigh; cvhIdx++)
-                            {
-                                vod = iod + cvhIdx * c4ConvWidth;
-                                for (cvwIdx = 0; cvwIdx < c4ConvWidth; cvwIdx++)
-                                {
-                                    *curmap += *(curin + cvhIdx * c3MapWidth + cvwIdx) * c4Conv[vod + cvwIdx];
-                                }
-                            }
-                        }
-
-                        *curmap += c4Bias[odeepIdx];
-
-                        *curmap = ACTIVATION(*curmap);
-                    }
-                }
-            }
         }
 
 
         void slqAlexNet::ForwardC5()
         {
-            int odeepIdx;
-            int ohIdx;
-            int owIdx;
-            int ideepIdx;
-            int cvhIdx;
-            int cvwIdx;
+            int params[] = { c4MapNum / 2, c5MapNum / 2, c4MapHigh, c4MapWidth, c5MapHigh, c5MapWidth, c5ConvHigh, c5ConvWidth, c5ConvStride, 0 };
 
-            int ohd;
-            int iod;
-            int vod;
+            float tmp[c4UnitNum];
+            memcpy((char*)tmp, (char*)c4Map, sizeof(float)*c4UnitNum);
 
             std::fill(c5Map, c5Map + c5UnitNum, 0.f);
-            for (odeepIdx = 0; odeepIdx < c5MapNum / 2; odeepIdx++)
-            {
-                for (ohIdx = 0; ohIdx < c5MapHigh; ohIdx++)
-                {
-                    ohd = odeepIdx * c5MapSize + ohIdx * c5MapWidth;
-                    for (owIdx = 0; owIdx < c5MapWidth; owIdx++)
-                    {
-                        float *curmap = c5Map + ohd + owIdx;
-                        for (ideepIdx = 0; ideepIdx < c5ConvDeep; ideepIdx++)
-                        {
-                            float *curin = c4Map + ideepIdx * c4MapSize + (ohIdx - 1) * c5ConvStride * c4MapWidth + (owIdx - 1) * c5ConvStride;
-                            iod = odeepIdx * c5ConvSize + ideepIdx * c5ConvHigh * c5ConvWidth;
+            ConvolutionOpt(c4Map, c5Map, c5Conv, c5Bias, params);
 
-                            for (cvhIdx = 0; cvhIdx < c5ConvHigh; cvhIdx++)
-                            {
-                                vod = iod + cvhIdx * c5ConvWidth;
-                                for (cvwIdx = 0; cvwIdx < c5ConvWidth; cvwIdx++)
-                                {
-                                    *curmap += *(curin + cvhIdx * c4MapWidth + cvwIdx) * c5Conv[vod + cvwIdx];
-                                }
-                            }
-                        }
+            ConvolutionOpt(c4Map + c4MapNum / 2 * c4MapSize, c5Map + c5MapNum / 2 * c5MapSize, c5Conv + c5MapNum / 2 * c5ConvSize, c5Bias + c5MapNum / 2, params);
 
-                        *curmap += c5Bias[odeepIdx];
-
-                        *curmap = ACTIVATION(*curmap);
-                    }
-                }
-            }
-
-            for (odeepIdx = c5MapNum / 2; odeepIdx < c5MapNum; odeepIdx++)
-            {
-                for (ohIdx = 0; ohIdx < c5MapHigh; ohIdx++)
-                {
-                    ohd = odeepIdx * c5MapSize + ohIdx * c5MapWidth;
-                    for (owIdx = 0; owIdx < c5MapWidth; owIdx++)
-                    {
-                        float *curmap = c5Map + ohd + owIdx;
-                        for (ideepIdx = c5ConvDeep; ideepIdx < c4MapNum; ideepIdx++)
-                        {
-                            float *curin = c4Map + ideepIdx * c4MapSize + (ohIdx - 1) * c4MapWidth + owIdx - 1;
-                            iod = odeepIdx * c5ConvSize + (ideepIdx - c5ConvDeep) * c5ConvHigh * c5ConvWidth;
-
-                            for (cvhIdx = 0; cvhIdx < c5ConvHigh; cvhIdx++)
-                            {
-                                vod = iod + cvhIdx * c5ConvWidth;
-                                for (cvwIdx = 0; cvwIdx < c5ConvWidth; cvwIdx++)
-                                {
-                                    *curmap += *(curin + cvhIdx * c4MapWidth + cvwIdx) * c5Conv[vod + cvwIdx];
-                                }
-                            }
-                        }
-
-                        *curmap += c5Bias[odeepIdx];
-
-                        *curmap = ACTIVATION(*curmap);
-                    }
-                }
-            }
         }
 
 
         void slqAlexNet::ForwardS5()
         {
-            int odeepIdx;
-            int ohIdx;
-            int owIdx;
-            int phIdx;
-            int pwIdx;
+            int params[] = { s5MapNum, c5MapHigh, c5MapWidth, s5MapHigh, s5MapWidth, poolSpace, poolStride, 0 };
 
-            int odh;
-            int sdh;
+            float tmp[c5UnitNum];
+            memcpy((char*)tmp, (char*)c5Map, sizeof(float)*c5UnitNum);
 
             std::fill(s5Map, s5Map + s5UnitNum, 0.f);
-            for (odeepIdx = 0; odeepIdx < s5MapNum; odeepIdx++)
-            {
-                for (ohIdx = 0; ohIdx < s5MapHigh; ohIdx++)
-                {
-                    odh = odeepIdx * s5MapSize + ohIdx * s5MapWidth;
-                    sdh = odeepIdx * c5MapSize + ohIdx * poolStride * c5MapWidth;
+            PoolingOpt(c5Map, s5Map, s5Pool, s5Bias, params);
 
-                    for (owIdx = 1; owIdx < s5MapWidth - 1; owIdx++)
-                    {
-                        float *curmap = s5Map + odh + owIdx;
-                        float *curin = c5Map + sdh + owIdx * poolStride;
-                        for (phIdx = 0; phIdx < poolSpace; phIdx++)
-                        {
-                            for (pwIdx = 0; pwIdx < poolSpace; pwIdx++)
-                            {
-                                *curmap += *curin + phIdx * c5MapWidth + pwIdx;
-                            }
-                        }
-
-                        *curmap = *curmap / (poolSpace * poolSpace) * s5Pool[odeepIdx] + s5Bias[odeepIdx];
-                        *curmap = ACTIVATION(*curmap);
-                    }
-                }
-            }
         }
 
 
@@ -731,16 +495,16 @@ namespace slqDL {
             int oIdx;
             int iIdx;
 
-            int ood;
+            float tmp[s5UnitNum];
+            memcpy((char*)tmp, (char*)s5Map, sizeof(float)*s5UnitNum);
 
             std::fill(f1Map, f1Map + f1UnitNum, 0.f);
             for (oIdx = 0; oIdx < f1UnitNum; oIdx++)
             {
                 float *curmap = f1Map + oIdx;
-                ood = oIdx * s5UnitNum;
                 for (iIdx = 0; iIdx < s5UnitNum; iIdx++)
                 {
-                    *curmap += s5Map[iIdx] * f1Conn[ood + iIdx];
+                    *curmap += s5Map[iIdx] * f1Conn[iIdx * f1UnitNum + oIdx];
                 }
 
                 *curmap += f1Bias[oIdx];
@@ -754,16 +518,17 @@ namespace slqDL {
             int oIdx;
             int iIdx;
 
-            int iod;
+
+            float tmp[f1UnitNum];
+            memcpy((char*)tmp, (char*)f1Map, sizeof(float)*f1UnitNum);
 
             std::fill(f2Map, f2Map + f2UnitNum, 0.f);
             for (oIdx = 0; oIdx < f2UnitNum; oIdx++)
             {
                 float *curmap = f2Map + oIdx;
-                iod = oIdx * f1UnitNum;
                 for (iIdx = 0; iIdx < f1UnitNum; iIdx++)
                 {
-                    *curmap += f1Map[iIdx] * f2Conn[iod + iIdx];
+                    *curmap += f1Map[iIdx] * f2Conn[iIdx * f2UnitNum + oIdx];
                 }
 
                 *curmap += f2Bias[oIdx];
@@ -777,16 +542,18 @@ namespace slqDL {
             int oIdx;
             int iIdx;
 
-            int iod;
+
+            float tmp[f2UnitNum];
+            memcpy((char*)tmp, (char*)f2Map, sizeof(float)*f2UnitNum);
+
 
             std::fill(f3Map, f3Map + f3UnitNum, 0.f);
             for (oIdx = 0; oIdx < f3UnitNum; oIdx++)
             {
                 float *curmap = f3Map + oIdx;
-                iod = oIdx * f2UnitNum;
                 for (iIdx = 0; iIdx < f2UnitNum; iIdx++)
                 {
-                    *curmap += f2Map[iIdx] * f3Conn[iod + iIdx];
+                    *curmap += f2Map[iIdx] * f3Conn[iIdx * f3UnitNum + oIdx];
                 }
 
                 *curmap += f3Bias[oIdx];
@@ -800,16 +567,22 @@ namespace slqDL {
             int oIdx;
             int iIdx;
 
+            float tmpf3[f3UnitNum];
+            memcpy((char*)tmpf3, (char*)f3Map, sizeof(float)*f3UnitNum);
+
             for (oIdx = 0; oIdx < f3UnitNum; oIdx++)
             {
                 f3MapDt[oIdx] = (f3Map[oIdx] - mlabel[oIdx]) * ACTDEVICE(f3Map[oIdx]);
                 f3BiasDt[oIdx] = f3MapDt[oIdx];
+
 
                 for (iIdx = 0; iIdx < f2UnitNum; iIdx++)
                 {
                     f3ConnDt[iIdx*f3UnitNum + oIdx] = f3MapDt[oIdx] * f2Map[iIdx];
                 }
             }
+
+
         }
 
 
@@ -829,11 +602,14 @@ namespace slqDL {
                 f2MapDt[oIdx] = ACTDEVICE(f2Map[oIdx]) * curdt;
                 f2BiasDt[oIdx] = f2MapDt[oIdx];
 
+
                 for (iIdx = 0; iIdx < f1UnitNum; iIdx++)
                 {
-                    f2ConnDt[iIdx * f2UnitNum + oIdx] = f1Map[iIdx] * f2MapDt[oIdx];
+                    f2ConnDt[iIdx * f2UnitNum + oIdx] = f2MapDt[oIdx] * f1Map[iIdx];
                 }
             }
+
+
         }
 
 
@@ -853,17 +629,19 @@ namespace slqDL {
                 f1MapDt[oIdx] = ACTDEVICE(f1Map[oIdx]) * curdt;
                 f1BiasDt[oIdx] = f1MapDt[oIdx];
 
+
                 for (iIdx = 0; iIdx < s5UnitNum; iIdx++)
                 {
                     f1ConnDt[iIdx * f1UnitNum + oIdx] = f1MapDt[oIdx] * s5Map[iIdx];
                 }
             }
+
+
         }
 
 
         void slqAlexNet::BackwardS5()
         {
-            int oIdx;
             int iIdx;
             int iod;
 
@@ -875,18 +653,6 @@ namespace slqDL {
 
             std::fill(s5BiasDt, s5BiasDt + s5MapNum, 0.f);
             std::fill(s5PoolDt, s5PoolDt + s5MapNum, 0.f);
-            for (oIdx = 0; oIdx < s5UnitNum; oIdx++)
-            {
-                float curdt = 0.f;
-                iod = oIdx * f1UnitNum;
-                for (iIdx = 0; iIdx < f1UnitNum; iIdx++)
-                {
-                    curdt += f1MapDt[iIdx] * f1Conn[iod + iIdx];
-                }
-
-                s5MapDt[oIdx] = ACTDEVICE(s5Map[oIdx]) * curdt;
-            }
-
             for (odeepIdx = 0; odeepIdx < s5MapNum; odeepIdx++)
             {
                 for (ohIdx = 0; ohIdx < s5MapHigh; ohIdx++)
@@ -894,10 +660,17 @@ namespace slqDL {
                     iod = odeepIdx*s5MapSize + ohIdx * s5MapWidth;
                     for (owIdx = 0; owIdx < s5MapWidth; owIdx++)
                     {
+                        float curdt = 0.f;
+                        for (iIdx = 0; iIdx < f1UnitNum; iIdx++)
+                        {
+                            curdt += f1MapDt[iIdx] * f1Conn[(iod + owIdx)*f1UnitNum + iIdx];
+                        }
+
+                        s5MapDt[iod + owIdx] = ACTDEVICE(s5Map[iod + owIdx]) * curdt;
                         s5BiasDt[odeepIdx] += s5MapDt[iod + owIdx];
 
                         float *curin = c5Map + odeepIdx * c5MapSize + ohIdx * poolStride * c5MapWidth + owIdx * poolStride;
-                        float curdt = 0.f;
+                        curdt = 0.f;
                         for (phIdx = 0; phIdx < poolSpace; phIdx++)
                         {
                             for (pwIdx = 0; pwIdx < poolSpace; pwIdx++)
@@ -910,6 +683,7 @@ namespace slqDL {
                     }
                 }
             }
+
         }
 
 
@@ -926,13 +700,11 @@ namespace slqDL {
             int vod;
             int svh;
 
-            int top;
-
             std::fill(c5MapDt, c5MapDt + c5UnitNum, 0.f);
             std::fill(c5BiasDt, c5BiasDt + c5MapNum, 0.f);
             std::fill(c5ConvDt, c5ConvDt + c5ConvUNum, 0.f);
 
-            for (odeepIdx = 0; odeepIdx < c5MapNum; odeepIdx)
+            for (odeepIdx = 0; odeepIdx < c5MapNum; odeepIdx++)
             {
                 for (ohIdx = 0; ohIdx < s5MapHigh; ohIdx++)
                 {
@@ -942,32 +714,57 @@ namespace slqDL {
                         {
                             for (pwIdx = 0; pwIdx < poolSpace; pwIdx++)
                             {
-                                iod = odeepIdx * c5MapSize + (ohIdx + poolStride + phIdx) * c5MapWidth + (owIdx + poolStride + pwIdx);
+                                iod = odeepIdx * c5MapSize + (ohIdx * poolStride + phIdx) * c5MapWidth + (owIdx * poolStride + pwIdx);
                                 vod = odeepIdx * s5MapSize + ohIdx * s5MapWidth + owIdx;
                                 c5MapDt[iod] += ACTDEVICE(c5Map[iod]) * s5Pool[odeepIdx] * s5MapDt[vod] / (poolSpace * poolSpace);
                                 c5BiasDt[odeepIdx] += c5MapDt[iod];
                             }
                         }
-
                     }
                 }
+            }
 
-                top = odeepIdx > c5MapNum / 2 ? 0 : 1;
-
+            for (odeepIdx = 0; odeepIdx < c5MapNum / 2; odeepIdx++)
+            {
                 for (ideepIdx = 0; ideepIdx < c5ConvDeep; ideepIdx++)
                 {
                     for (phIdx = 0; phIdx < c5ConvHigh; phIdx++)
                     {
                         for (pwIdx = 0; pwIdx < c5ConvWidth; pwIdx++)
                         {
-                            iod = odeepIdx * c5ConvSize + ideepIdx * c5ConvHigh * c5ConvWidth + phIdx * c5ConvWidth + pwIdx;
+                            iod = odeepIdx * c5ConvSize + ideepIdx * c5ConvTensor + phIdx * c5ConvWidth + pwIdx;
                             float *curconv = c5ConvDt + iod;
 
                             for (ohIdx = 0; ohIdx < c5MapHigh; ohIdx++)
                             {
                                 for (owIdx = 0; owIdx < c5MapWidth; owIdx++)
                                 {
-                                    svh = (ideepIdx + top * c5ConvDeep) * c4MapSize + (phIdx + ohIdx * c5ConvStride)*c4MapWidth + (pwIdx + owIdx * c5ConvStride);
+                                    svh = ideepIdx * c4MapSize + (phIdx + ohIdx * c5ConvStride)*c4MapWidth + (pwIdx + owIdx * c5ConvStride);
+                                    vod = odeepIdx * c5MapSize + ohIdx * c5MapWidth + owIdx;
+                                    *curconv += c4Map[svh] * c5MapDt[vod];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (odeepIdx = c5MapNum / 2; odeepIdx < c5MapNum; odeepIdx++)
+            {
+                for (ideepIdx = c5ConvDeep; ideepIdx < c4MapNum; ideepIdx++)
+                {
+                    for (phIdx = 0; phIdx < c5ConvHigh; phIdx++)
+                    {
+                        for (pwIdx = 0; pwIdx < c5ConvWidth; pwIdx++)
+                        {
+                            iod = odeepIdx * c5ConvSize + (ideepIdx - c5ConvDeep) * c5ConvTensor + phIdx * c5ConvWidth + pwIdx;
+                            float *curconv = c5ConvDt + iod;
+
+                            for (ohIdx = 0; ohIdx < c5MapHigh; ohIdx++)
+                            {
+                                for (owIdx = 0; owIdx < c5MapWidth; owIdx++)
+                                {
+                                    svh = ideepIdx * c4MapSize + (phIdx + ohIdx * c5ConvStride)*c4MapWidth + (pwIdx + owIdx * c5ConvStride);
                                     vod = odeepIdx * c5MapSize + ohIdx * c5MapWidth + owIdx;
                                     *curconv += c4Map[svh] * c5MapDt[vod];
                                 }
@@ -992,7 +789,6 @@ namespace slqDL {
             int vod;
             int svh;
 
-            int top;
 
             std::fill(c4MapDt, c4MapDt + c4UnitNum, 0.f);
             std::fill(c4BiasDt, c4BiasDt + c4MapNum, 0.f);
@@ -1005,15 +801,14 @@ namespace slqDL {
                     {
                         for (pwIdx = 0; pwIdx < c5ConvWidth; pwIdx++)
                         {
+                            svh = ideepIdx * c5ConvSize + odeepIdx * c5ConvTensor + phIdx * c5ConvWidth + pwIdx;
                             for (ohIdx = 0; ohIdx < c5MapHigh; ohIdx++)
                             {
                                 for (owIdx = 0; owIdx < c5MapWidth; owIdx++)
                                 {
                                     iod = odeepIdx * c4MapSize + (phIdx + ohIdx * c5ConvStride) * c4MapWidth + (pwIdx + owIdx * c5ConvStride);
                                     vod = ideepIdx * c5MapSize + ohIdx * c5MapWidth + owIdx;
-                                    svh = ideepIdx * c5ConvSize + odeepIdx * c5ConvHigh * c5ConvWidth + phIdx * c5ConvWidth + pwIdx;
                                     c4MapDt[iod] += ACTDEVICE(c4Map[iod]) * c5Conv[svh] * c5MapDt[vod];
-                                    c4BiasDt[odeepIdx] += c4MapDt[iod];
                                 }
                             }
                         }
@@ -1029,15 +824,14 @@ namespace slqDL {
                     {
                         for (pwIdx = 0; pwIdx < c5ConvWidth; pwIdx++)
                         {
+                            svh = ideepIdx * c5ConvSize + (odeepIdx - c5ConvDeep) * c5ConvTensor + phIdx * c5ConvWidth + pwIdx;
                             for (ohIdx = 0; ohIdx < c5MapHigh; ohIdx++)
                             {
                                 for (owIdx = 0; owIdx < c5MapWidth; owIdx++)
                                 {
                                     iod = odeepIdx * c4MapSize + (phIdx + ohIdx * c5ConvStride) * c4MapWidth + (pwIdx + owIdx * c5ConvStride);
                                     vod = ideepIdx * c5MapSize + ohIdx * c5MapWidth + owIdx;
-                                    svh = ideepIdx * c5ConvSize + (odeepIdx - c5ConvDeep) * c5ConvHigh * c5ConvWidth + phIdx * c5ConvWidth + pwIdx;
                                     c4MapDt[iod] += ACTDEVICE(c4Map[iod]) * c5Conv[svh] * c5MapDt[vod];
-                                    c4BiasDt[odeepIdx] += c4MapDt[iod];
                                 }
                             }
                         }
@@ -1053,36 +847,14 @@ namespace slqDL {
                     {
                         for (pwIdx = 0; pwIdx < c4ConvWidth; pwIdx++)
                         {
-                            iod = odeepIdx * c4ConvSize + ideepIdx * c4ConvHigh * c4ConvWidth + phIdx * c4ConvWidth + pwIdx;
-                            for (ohIdx = 1; ohIdx < c4MapHigh-1; ohIdx++)
-                            {
-                                for (owIdx = 1; owIdx < c4MapWidth-1; owIdx++)
-                                {
-                                    vod = odeepIdx * c4MapSize + ohIdx * c4MapWidth + owIdx;
-                                    svh = ideepIdx * c3MapSize + ((ohIdx - 1) * c4ConvStride + phIdx) * c3MapWidth + ((owIdx - 1) * c4ConvStride + pwIdx);
-                                    c4ConvDt[iod] += c3Map[svh] * c4MapDt[vod];
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            for (odeepIdx = c4MapNum; odeepIdx < c4MapNum; odeepIdx++)
-            {
-                for (ideepIdx = 0; ideepIdx < c4ConvDeep; ideepIdx++)
-                {
-                    for (phIdx = 0; phIdx < c4ConvHigh; phIdx++)
-                    {
-                        for (pwIdx = 0; pwIdx < c4ConvWidth; pwIdx++)
-                        {
-                            iod = odeepIdx * c4ConvSize + ideepIdx * c4ConvHigh * c4ConvWidth + phIdx * c4ConvWidth + pwIdx;
+                            iod = odeepIdx * c4ConvSize + ideepIdx * c4ConvTensor + phIdx * c4ConvWidth + pwIdx;
                             for (ohIdx = 1; ohIdx < c4MapHigh - 1; ohIdx++)
                             {
                                 for (owIdx = 1; owIdx < c4MapWidth - 1; owIdx++)
                                 {
                                     vod = odeepIdx * c4MapSize + ohIdx * c4MapWidth + owIdx;
-                                    svh = (ideepIdx + c4ConvDeep) * c3MapSize + ((ohIdx - 1)  * c4ConvStride + phIdx) * c3MapWidth + ((owIdx - 1) * c4ConvStride + pwIdx);
+                                    svh = ideepIdx * c3MapSize + ((ohIdx - 1) * c4ConvStride + phIdx) * c3MapWidth + ((owIdx - 1) * c4ConvStride + pwIdx);
+                                    c4BiasDt[odeepIdx] += c4MapDt[vod];
                                     c4ConvDt[iod] += c3Map[svh] * c4MapDt[vod];
                                 }
                             }
@@ -1091,6 +863,29 @@ namespace slqDL {
                 }
             }
 
+            for (odeepIdx = c4MapNum / 2; odeepIdx < c4MapNum; odeepIdx++)
+            {
+                for (ideepIdx = c4ConvDeep; ideepIdx < c3MapNum; ideepIdx++)
+                {
+                    for (phIdx = 0; phIdx < c4ConvHigh; phIdx++)
+                    {
+                        for (pwIdx = 0; pwIdx < c4ConvWidth; pwIdx++)
+                        {
+                            iod = odeepIdx * c4ConvSize + (ideepIdx - c4ConvDeep) * c4ConvTensor + phIdx * c4ConvWidth + pwIdx;
+                            for (ohIdx = 1; ohIdx < c4MapHigh - 1; ohIdx++)
+                            {
+                                for (owIdx = 1; owIdx < c4MapWidth - 1; owIdx++)
+                                {
+                                    vod = odeepIdx * c4MapSize + ohIdx * c4MapWidth + owIdx;
+                                    svh = ideepIdx * c3MapSize + ((ohIdx - 1)  * c4ConvStride + phIdx) * c3MapWidth + ((owIdx - 1) * c4ConvStride + pwIdx);
+                                    c4BiasDt[odeepIdx] += c4MapDt[vod];
+                                    c4ConvDt[iod] += c3Map[svh] * c4MapDt[vod];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
         }
 
@@ -1119,15 +914,14 @@ namespace slqDL {
                     {
                         for (pwIdx = 0; pwIdx < c4ConvWidth; pwIdx++)
                         {
-                            for (ohIdx = 1; ohIdx < c4MapHigh-1; ohIdx++)
+                            svh = ideepIdx * c4ConvSize + odeepIdx * c4ConvTensor + phIdx * c4ConvWidth + pwIdx;
+                            for (ohIdx = 1; ohIdx < c4MapHigh - 1; ohIdx++)
                             {
-                                for (owIdx = 1; owIdx < c4MapWidth-1; owIdx++)
+                                for (owIdx = 1; owIdx < c4MapWidth - 1; owIdx++)
                                 {
-                                    iod = odeepIdx * c3MapSize + (phIdx + (ohIdx-1) * c4ConvStride) * c3MapWidth + (pwIdx + (owIdx-1) * c4ConvStride);
+                                    iod = odeepIdx * c3MapSize + (phIdx + (ohIdx - 1) * c4ConvStride) * c3MapWidth + (pwIdx + (owIdx - 1) * c4ConvStride);
                                     vod = ideepIdx * c4MapSize + ohIdx * c4MapWidth + owIdx;
-                                    svh = ideepIdx * c4ConvSize + odeepIdx * c4ConvHigh * c4ConvWidth + phIdx * c4ConvWidth + pwIdx;
                                     c3MapDt[iod] += ACTDEVICE(c3Map[iod]) * c4Conv[svh] * c4MapDt[vod];
-                                    c3BiasDt[odeepIdx] += c3MapDt[iod];
                                 }
                             }
                         }
@@ -1143,15 +937,14 @@ namespace slqDL {
                     {
                         for (pwIdx = 0; pwIdx < c4ConvWidth; pwIdx++)
                         {
-                            for (ohIdx = 1; ohIdx < c4MapHigh-1; ohIdx++)
+                            svh = ideepIdx * c4ConvSize + (odeepIdx - c4ConvDeep) * c4ConvTensor + phIdx * c4ConvWidth + pwIdx;
+                            for (ohIdx = 1; ohIdx < c4MapHigh - 1; ohIdx++)
                             {
-                                for (owIdx = 1; owIdx < c4MapWidth-1; owIdx++)
+                                for (owIdx = 1; owIdx < c4MapWidth - 1; owIdx++)
                                 {
-                                    iod = odeepIdx * c3MapSize + (phIdx + (ohIdx-1) * c4ConvStride) * c3MapWidth + (pwIdx + (owIdx-1) * c4ConvStride);
+                                    iod = odeepIdx * c3MapSize + (phIdx + (ohIdx - 1) * c4ConvStride) * c3MapWidth + (pwIdx + (owIdx - 1) * c4ConvStride);
                                     vod = ideepIdx * c4MapSize + ohIdx * c4MapWidth + owIdx;
-                                    svh = ideepIdx * c4ConvSize + (odeepIdx - c4ConvDeep) * c4ConvHigh * c4ConvWidth + phIdx * c4ConvWidth + pwIdx;
                                     c3MapDt[iod] += ACTDEVICE(c3Map[iod]) * c4Conv[svh] * c4MapDt[vod];
-                                    c3BiasDt[odeepIdx] += c3MapDt[iod];
                                 }
                             }
                         }
@@ -1163,17 +956,21 @@ namespace slqDL {
             {
                 for (ideepIdx = 0; ideepIdx < c3ConvDeep; ideepIdx++)
                 {
+                    if (!CONV3Table[odeepIdx][ideepIdx])
+                        continue;
+
                     for (phIdx = 0; phIdx < c3ConvHigh; phIdx++)
                     {
                         for (pwIdx = 0; pwIdx < c3ConvWidth; pwIdx++)
                         {
-                            iod = odeepIdx * c3ConvSize + ideepIdx * c3ConvHigh * c3ConvWidth + phIdx * c3ConvWidth + pwIdx;
+                            iod = odeepIdx * c3ConvSize + ideepIdx * c3ConvTensor + phIdx * c3ConvWidth + pwIdx;
                             for (ohIdx = 1; ohIdx < c3MapHigh - 1; ohIdx++)
                             {
                                 for (owIdx = 1; owIdx < c3MapWidth - 1; owIdx++)
                                 {
                                     vod = odeepIdx * c3MapSize + ohIdx * c3MapWidth + owIdx;
-                                    svh = ideepIdx * s2MapSize + (ohIdx - 1 + phIdx*c3ConvStride) * s2MapWidth + (owIdx - 1 + pwIdx * c3ConvStride);
+                                    svh = ideepIdx * s2MapSize + ((ohIdx - 1) * c3ConvStride + phIdx) * s2MapWidth + ((owIdx - 1) * c3ConvStride + pwIdx);
+                                    c3BiasDt[odeepIdx] += c3MapDt[vod];
                                     c3ConvDt[iod] += c3MapDt[vod] * s2Map[svh];
                                 }
                             }
@@ -1204,19 +1001,21 @@ namespace slqDL {
             {
                 for (ideepIdx = 0; ideepIdx < c3MapNum; ideepIdx++)
                 {
+                    if (!CONV3Table[ideepIdx][odeepIdx])
+                        continue;
+
                     for (phIdx = 0; phIdx < c3ConvHigh; phIdx++)
                     {
                         for (pwIdx = 0; pwIdx < c3ConvWidth; pwIdx++)
                         {
-                            for (ohIdx = 1; ohIdx < c3MapHigh-1; ohIdx++)
+                            svh = ideepIdx * c3ConvSize + odeepIdx * c3ConvTensor + phIdx * c3ConvWidth + pwIdx;
+                            for (ohIdx = 1; ohIdx < c3MapHigh - 1; ohIdx++)
                             {
-                                for (owIdx = 1; owIdx < c3MapWidth-1; owIdx++)
+                                for (owIdx = 1; owIdx < c3MapWidth - 1; owIdx++)
                                 {
                                     iod = odeepIdx * s2MapSize + (phIdx + (ohIdx - 1) * c3ConvStride) * s2MapWidth + (pwIdx + (owIdx - 1) * c3ConvStride);
                                     vod = ideepIdx * c3MapSize + ohIdx * c3MapWidth + owIdx;
-                                    svh = ideepIdx * c3ConvSize + odeepIdx * c3ConvHigh * c3ConvWidth + phIdx * c3ConvWidth + pwIdx;
                                     s2MapDt[iod] += ACTDEVICE(s2Map[iod]) * c3Conv[svh] * c3MapDt[vod];
-                                    s2BiasDt[odeepIdx] += s2MapDt[iod];
                                 }
                             }
                         }
@@ -1232,7 +1031,6 @@ namespace slqDL {
                     iod = odeepIdx*s2MapSize + ohIdx * s2MapWidth;
                     for (owIdx = 1; owIdx < s2MapWidth - 1; owIdx++)
                     {
-
                         float *curin = c2Map + odeepIdx * c2MapSize + (ohIdx - 1) * poolStride * c2MapWidth + (owIdx - 1) * poolStride;
                         float curdt = 0.f;
                         for (phIdx = 0; phIdx < poolSpace; phIdx++)
@@ -1243,9 +1041,12 @@ namespace slqDL {
                             }
                         }
 
+                        s2BiasDt[odeepIdx] += s2MapDt[iod + owIdx];
                         s2PoolDt[odeepIdx] += curdt / (poolSpace * poolSpace) * s2MapDt[iod + owIdx];
+
                     }
                 }
+
             }
         }
 
@@ -1286,7 +1087,7 @@ namespace slqDL {
                 }
             }
 
-            for (odeepIdx = 0; odeepIdx < c2MapNum/2; odeepIdx++)
+            for (odeepIdx = 0; odeepIdx < c2MapNum / 2; odeepIdx++)
             {
                 for (ideepIdx = 0; ideepIdx < c2ConvDeep; ideepIdx++)
                 {
@@ -1294,7 +1095,7 @@ namespace slqDL {
                     {
                         for (pwIdx = 0; pwIdx < c2ConvWidth; pwIdx++)
                         {
-                            iod =  odeepIdx * c2ConvSize + ideepIdx * c2ConvHigh * c2ConvWidth + phIdx * c2ConvWidth + pwIdx;
+                            iod = odeepIdx * c2ConvSize + ideepIdx * c2ConvTensor + phIdx * c2ConvWidth + pwIdx;
                             for (ohIdx = 0; ohIdx < c2MapHigh; ohIdx++)
                             {
                                 for (owIdx = 0; owIdx < c2MapWidth; owIdx++)
@@ -1312,19 +1113,19 @@ namespace slqDL {
 
             for (odeepIdx = c2MapNum / 2; odeepIdx < c2MapNum; odeepIdx++)
             {
-                for (ideepIdx = 0; ideepIdx < c2ConvDeep; ideepIdx++)
+                for (ideepIdx = c2ConvDeep; ideepIdx < s1MapNum; ideepIdx++)
                 {
                     for (phIdx = 0; phIdx < c2ConvHigh; phIdx++)
                     {
                         for (pwIdx = 0; pwIdx < c2ConvWidth; pwIdx++)
                         {
-                            iod = odeepIdx * c2ConvSize + ideepIdx * c2ConvHigh * c2ConvWidth + phIdx * c2ConvWidth + pwIdx;
+                            iod = odeepIdx * c2ConvSize + (ideepIdx - c2ConvDeep) * c2ConvTensor + phIdx * c2ConvWidth + pwIdx;
                             for (ohIdx = 0; ohIdx < c2MapHigh; ohIdx++)
                             {
                                 for (owIdx = 0; owIdx < c2MapWidth; owIdx++)
                                 {
                                     vod = odeepIdx * c2MapSize + ohIdx * c2MapWidth + owIdx;
-                                    svh = (ideepIdx + c2ConvDeep) * s1MapSize + (ohIdx + phIdx*c2ConvStride) * s1MapWidth + (owIdx + pwIdx * c2ConvStride);
+                                    svh = ideepIdx * s1MapSize + (ohIdx * c2ConvStride + phIdx) * s1MapWidth + (owIdx * c2ConvStride + pwIdx);
                                     c2ConvDt[iod] += c2MapDt[vod] * s1Map[svh];
 
                                 }
@@ -1360,15 +1161,14 @@ namespace slqDL {
                     {
                         for (pwIdx = 0; pwIdx < c2ConvWidth; pwIdx++)
                         {
-                            vod = odeepIdx * c2ConvSize + ideepIdx * c2ConvHigh * c2ConvWidth + phIdx * c2ConvHigh + pwIdx;
+                            vod = odeepIdx * c2ConvSize + ideepIdx * c2ConvTensor + phIdx * c2ConvHigh + pwIdx;
                             for (ohIdx = 0; ohIdx < c2MapHigh; ohIdx++)
                             {
                                 for (owIdx = 0; owIdx < c2MapWidth; owIdx++)
                                 {
-                                    iod = odeepIdx * s1MapSize + (ohIdx + phIdx * c2ConvStride) * s1MapWidth + (owIdx + pwIdx * c2ConvStride);
+                                    iod = odeepIdx * s1MapSize + (ohIdx * c2ConvStride + phIdx) * s1MapWidth + (owIdx * c2ConvStride + pwIdx);
                                     svh = ideepIdx * c2MapSize + ohIdx * c2MapWidth + owIdx;
                                     s1MapDt[iod] += ACTDEVICE(s1Map[iod]) * c2Conv[vod] * c2MapDt[svh];
-                                    s1BiasDt[odeepIdx] += s1MapDt[iod];
                                 }
                             }
                         }
@@ -1385,15 +1185,14 @@ namespace slqDL {
                     {
                         for (pwIdx = 0; pwIdx < c2ConvWidth; pwIdx++)
                         {
-                            vod = odeepIdx * c2ConvSize + ideepIdx * c2ConvHigh * c2ConvWidth + phIdx * c2ConvHigh + pwIdx;
+                            vod = odeepIdx * c2ConvSize + ideepIdx * c2ConvTensor + phIdx * c2ConvHigh + pwIdx;
                             for (ohIdx = 0; ohIdx < c2MapHigh; ohIdx++)
                             {
                                 for (owIdx = 0; owIdx < c2MapWidth; owIdx++)
                                 {
-                                    iod = odeepIdx * s1MapSize + (ohIdx + phIdx * c2ConvStride) * s1MapWidth + (owIdx + pwIdx * c2ConvStride);
+                                    iod = odeepIdx * s1MapSize + (ohIdx * c2ConvStride + phIdx) * s1MapWidth + (owIdx * c2ConvStride + pwIdx);
                                     svh = (ideepIdx + c2ConvDeep) * c2MapSize + ohIdx * c2MapWidth + owIdx;
                                     s1MapDt[iod] += ACTDEVICE(s1Map[iod]) * c2Conv[vod] * c2MapDt[svh];
-                                    s1BiasDt[odeepIdx] += s1MapDt[iod];
                                 }
                             }
                         }
@@ -1401,7 +1200,8 @@ namespace slqDL {
                 }
             }
 
-            for (odeepIdx = 0; odeepIdx < s1MapNum; odeepIdx++)  
+
+            for (odeepIdx = 0; odeepIdx < s1MapNum; odeepIdx++)
             {
                 for (ohIdx = 2; ohIdx < s1MapHigh - 2; ohIdx++)
                 {
@@ -1417,8 +1217,10 @@ namespace slqDL {
                             {
                                 curdt += *(curin + phIdx * c1MapWidth + pwIdx);
                             }
+
                         }
 
+                        s1BiasDt[odeepIdx] += s1MapDt[iod + owIdx];
                         s1PoolDt[odeepIdx] += curdt / (poolSpace * poolSpace) * s1MapDt[iod + owIdx];
                     }
                 }
@@ -1428,6 +1230,7 @@ namespace slqDL {
 
 
         void slqAlexNet::BackwardC1()
+
         {
             int odeepIdx;
             int ideepIdx;
@@ -1468,15 +1271,15 @@ namespace slqDL {
                     {
                         for (pwIdx = 0; pwIdx < c1ConvWidth; pwIdx++)
                         {
-                            vod = odeepIdx * c1ConvSize + ideepIdx * c1ConvHigh * c1ConvWidth + phIdx * c1ConvWidth + pwIdx;
+                            vod = odeepIdx * c1ConvSize + ideepIdx * c1ConvTensor + phIdx * c1ConvWidth + pwIdx;
 
                             for (ohIdx = 0; ohIdx < c1MapHigh; ohIdx++)
                             {
                                 for (owIdx = 0; owIdx < c1MapWidth; owIdx++)
                                 {
-                                    iod = ideepIdx * inMapSize + (ohIdx + phIdx * c1ConvStride) * inMapWidth + (owIdx + pwIdx * c1ConvStride);
+                                    iod = ideepIdx * inMapSize + (phIdx + ohIdx * c1ConvStride) * inMapWidth + (pwIdx + owIdx * c1ConvStride);
                                     svh = odeepIdx * c1MapSize + ohIdx * c1MapWidth + owIdx;
-                                    c1ConvDt[vod] += inMap[iod] + c1MapDt[svh];
+                                    c1ConvDt[vod] += inMap[iod] * c1MapDt[svh];
                                 }
                             }
                         }
@@ -1488,6 +1291,7 @@ namespace slqDL {
 
 
         }
+
 
 
         void slqAlexNet::UpgradeNetwork()
@@ -1536,11 +1340,181 @@ namespace slqDL {
             }
         }
 
+        void slqAlexNet::ConvolutionOpt(float *inPtr, float *outPtr, float *convPtr, float *biPtr, int param[])
+        {
+            int inMapNo     = param[0];
+            int outMapNo    = param[1];
+            int inMapH      = param[2];
+            int inMapW      = param[3];
+            int outMapH     = param[4];
+            int outMapW     = param[5];
+            int convH       = param[6];
+            int convW       = param[7];
+            int convStride  = param[8];
+            int expand      = param[9];
+
+            int odeepIdx;
+            int ideepIdx;
+            int ohIdx;
+            int owIdx;
+            int phIdx;
+            int pwIdx;
+
+            int iod;
+            int vod;
+            int svh;
+
+            int insize = inMapH * inMapW;
+            int convsize = inMapNo * convH * convW;
+            int convtsor = convH * convW;
+
+            for (odeepIdx = 0; odeepIdx < outMapNo; odeepIdx++)
+            {
+                for (ohIdx = expand; ohIdx < outMapH - expand; ohIdx++)
+                {
+                    iod = odeepIdx * outMapH * outMapW + ohIdx * outMapW;
+                    for (owIdx = expand; owIdx < outMapW - expand; owIdx++)
+                    {
+                        float *curmap = outPtr + iod + owIdx;
+                        float cur = 0.f;
+
+                        for (ideepIdx = 0; ideepIdx < inMapNo; ideepIdx++)
+                        {
+                            if ((inMapNo == s2MapNum) && (outMapNo == c3MapNum) && (!CONV3Table[odeepIdx][ideepIdx]))
+                                continue;
+
+                            vod = odeepIdx * convsize + ideepIdx * convtsor;
+                            svh = ideepIdx * insize + (ohIdx - expand) * convStride * inMapW + (owIdx - expand) * convStride;
+
+                            float *curcv = convPtr + vod;
+                            float *curin = inPtr + svh;
+
+                            for (phIdx = 0; phIdx < convH; phIdx++)
+                            {
+                                for (pwIdx = 0; pwIdx < convW; pwIdx++)
+                                {
+                                    
+                                    cur += *(curcv + phIdx * convW + pwIdx) * (*(curin + phIdx * inMapW + pwIdx));
+                                }
+                            }
+                        }
+
+                        *curmap = cur + *(biPtr + odeepIdx);
+                        *curmap = ACTIVATION(*curmap);
+                    }
+                }
+            }
+
+        }
+
+        void slqAlexNet::PoolingOpt(float *inPtr, float *outPtr, float *poolPtr, float *biPtr, int param[])
+        {
+            int mapNo       = param[0];
+            int imapH       = param[1];
+            int imapW       = param[2];
+            int omapH       = param[3];
+            int omapW       = param[4];
+            int poolspace   = param[5];
+            int poolstride  = param[6];
+            int expand      = param[7];
+
+            int deepIdx;
+            int ohIdx;
+            int owIdx;
+            int phIdx;
+            int pwIdx;
+
+            int iod;
+            int vod;
+
+            for(deepIdx = 0; deepIdx < mapNo; deepIdx++)
+            {
+                for (ohIdx = expand; ohIdx < omapH - expand; ohIdx++)
+                {
+                    iod = deepIdx * omapH * omapW + ohIdx * omapW;
+                    for (owIdx = expand; owIdx < omapW - expand; owIdx++)
+                    {
+                        vod = deepIdx * imapH * imapW + (ohIdx - expand) * poolstride * imapW + (owIdx - expand) * poolstride;
+                        float *curmap = outPtr + iod + owIdx;
+                        float *curin = inPtr + vod;
+                        float cur = 0.f;
+                        for (phIdx = 0; phIdx < poolspace; phIdx++)
+                        {
+                            for (pwIdx = 0; pwIdx < poolspace; pwIdx++)
+                            {
+                                cur += *(curin + phIdx * imapW + pwIdx);
+                            }
+                        }
+
+                        *curmap = cur / (poolspace * poolspace) + *(biPtr + deepIdx);
+                        *curmap = ACTIVATION(*curmap);
+                    }
+                }
+            }
+        }
+
 
         float slqAlexNet::test()
         {
-            return 0;
+            float acc = 0.f;
+            float prc = 0.f;
+            float maxv = -10.f;
+            int maxI;
+            char tlabl;
+            int mIdx;
+            int count = 0;
+            ifstream testStream;
+            ifstream testlabl;
+
+            testStream.open("imgTestArray", ifstream::in | ifstream::binary);
+            testlabl.open("imgTestLabel", ifstream::in | ifstream::binary);
+            if ((!testStream) || !testlabl)
+            {
+                if (testStream)
+                    testStream.close();
+                if (testlabl)
+                    testlabl.close();
+                cout << "There does not exist test data" << endl;
+                return -1.f;
+            }
+
+            while (EOF != testStream.peek())
+            {
+                count++;
+
+                testStream.read(inRaw, sizeof(char)* inUnitNum);
+                testlabl.read(&tlabl, sizeof(char));
+
+                RegularMap(inRaw, inMap);
+
+                ForwardC1();
+                ForwardS1();
+                ForwardC2();
+                ForwardS2();
+                ForwardC3();
+                ForwardC4();
+                ForwardC5();
+                ForwardS5();
+                ForwardF1();
+                ForwardF2();
+                ForwardF3();
+
+                for (mIdx = 0; mIdx < f3UnitNum; mIdx++)
+                {
+                    maxv = f3Map[mIdx] > maxv ? f3Map[mIdx] : maxv;
+                    maxI = f3Map[mIdx] > maxv ? mIdx : maxI;
+                }
+
+                if (maxI == tlabl)
+                    prc += 1;
+            }
+
+            testStream.close();
+            testlabl.close();
+
+            return (prc / count);
         }
+
 
 
         void slqAlexNet::SaveParameters()
@@ -1601,7 +1575,6 @@ namespace slqDL {
                 return;
             }
 
-
             fileStream.read((char*)c1Conv, c1ConvUNum * sizeof(float));
             fileStream.read((char*)c1BiasDt, c1MapNum * sizeof(float));
 
@@ -1643,11 +1616,78 @@ namespace slqDL {
 
 
         void slqAlexNet::ProduceLabel()
-        {}
+        {
+            int lIdx;
+            for (lIdx = 0; lIdx < f3UnitNum; lIdx++)
+            {
+                if (curLabl == lIdx)
+                {
+                    mlabel[lIdx] = 0.8f;
+                }
+                else
+                {
+                    mlabel[lIdx] = -0.8f;
+                }
+            }
+        }
 
 
         void slqAlexNet::RegularMap(char *cmap, float *mapdata)
-        {}
+        {
+            int mIdx;
+            float maxv = -10.f;
+            float minv = 256.f;
+            char *curc = cmap;
+            float *curmap = mapdata;
+
+            for (mIdx = 0; mIdx < inMapSize; mIdx++)
+            {
+                float cur = curc[mIdx] < 0 ? (curc[mIdx] + 256.f) : curc[mIdx];
+                maxv = cur > maxv ? cur : maxv;
+                minv = cur < minv ? cur : minv;
+            }
+
+            for (mIdx = 0; mIdx < inMapSize; mIdx++)
+            {
+                float cur = curc[mIdx] < 0 ? (curc[mIdx] + 256.f) : curc[mIdx];
+                curmap[mIdx] = (cur - minv) / (maxv - minv) * 2.f - 1.f;
+            }
+
+            maxv = -10.f;
+            minv = 256.f;
+            curc = cmap + inMapSize;
+            curmap = mapdata + inMapSize;
+            for (mIdx = 0; mIdx < inMapSize; mIdx++)
+            {
+                float cur = curc[mIdx] < 0 ? (curc[mIdx] + 256.f) : curc[mIdx];
+                maxv = cur > maxv ? cur : maxv;
+                minv = cur < minv ? cur : minv;
+            }
+
+            for (mIdx = 0; mIdx < inMapSize; mIdx++)
+            {
+                float cur = curc[mIdx] < 0 ? (curc[mIdx] + 256.f) : curc[mIdx];
+                curmap[mIdx] = (cur - minv) / (maxv - minv) * 2.f - 1.f;
+            }
+
+            maxv = -10.f;
+            minv = 256.f;
+            curc = cmap + inMapSize*2;
+            curmap = mapdata + inMapSize*2;
+            for (mIdx = 0; mIdx < inMapSize; mIdx++)
+            {
+                float cur = curc[mIdx] < 0 ? (curc[mIdx] + 256.f) : curc[mIdx];
+                maxv = cur > maxv ? cur : maxv;
+                minv = cur < minv ? cur : minv;
+            }
+
+            for (mIdx = 0; mIdx < inMapSize; mIdx++)
+            {
+                float cur = curc[mIdx] < 0 ? (curc[mIdx] + 256.f) : curc[mIdx];
+                curmap[mIdx] = (cur - minv) / (maxv - minv) * 2.f - 1.f;
+            }
+
+        }
 
 
         void slqAlexNet::uniform_rand(float* src, int len, float min, float max)
@@ -1669,14 +1709,14 @@ namespace slqDL {
 
             if (0 == phase)
             {
-                U = rand() / (RAND_MAX + 1.0f);
-                V = rand() / (RAND_MAX + 1.0f);
+                U = (rand() + EspCNN) / (RAND_MAX + 1.0f);
+                V = (rand() + EspCNN) / (RAND_MAX + 1.0f);
 
-                gaussz = 0.1f * std::sqrt(-2.0f * log(U)) * sin(2.0f * CV_PI * V);
+                gaussz = 0.01f * std::sqrt(-2.0f * log(U)) * sin(2.0f * CV_PI * V);
             }
             else
             {
-                gaussz = 0.1f * std::sqrt(-2.0f * log(U)) * cos(2.0f * CV_PI * V);
+                gaussz = 0.01f * std::sqrt(-2.0f * log(U)) * cos(2.0f * CV_PI * V);
             }
 
             phase = 1 - phase;
