@@ -4,7 +4,7 @@
 #include "slqNetMacro.h"
 
 namespace slqDL {
-    namespace slqAlexNet {
+    namespace slqAlexNet{
         class slqAlexNet {
         public:
             slqAlexNet() = default;
@@ -15,6 +15,9 @@ namespace slqDL {
             void init();
             void train();
             void predict();
+
+            void CreateConv3Table();
+
             
         private:
             void deletevar(float **var);
@@ -46,6 +49,10 @@ namespace slqDL {
 
             void UpgradeNetwork();
             void UpdateParameters(float *delta, float *Edelta, float *para, int len);
+            void ConvolutionOpt(float *inPtr, float *outPtr, float *convPtr, float *biPtr, int param[]);
+            void PoolingOpt(float *inPtr, float *outPtr, float *poolPtr, float *biPtr, int param[]);
+            void InverseConv();
+            void InversePool();
 
             float test();
             
@@ -59,7 +66,12 @@ namespace slqDL {
             float uniform_rand(float min, float max);
             
         private:
+            bool CONV3Table[c3ConvNum][c3ConvDeep];
+            char curLabl;
+
             float *mlabel;
+
+            char *inRaw;
             float *inMap;
             float *c1Map;
             float *s1Map;

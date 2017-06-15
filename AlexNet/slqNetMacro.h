@@ -4,16 +4,19 @@
 
 #include <cmath>
 namespace slqDL {
-  namespace slqAlexNet {
+  namespace slqAlexNet{
     
-#define EpochLoop                    (100)
-#define AccuracyRate                 (0.99)
-#define Alpha                        (0.01f)
-#define LoopError                    (0.001f)
-#define EspCNN                       (1e-8f)
+#define EpochLoop           (100)
+#define AccuracyRate        (0.56)
+#define Alpha               (0.01f)
+#define LoopError           (0.001f)
+#define EspCNN              (1e-8f)
     
 #define poolSpace                    (3)
 #define poolStride                   (2)
+
+#define TrainImgNum                  (40000)
+#define TestImgNum                   (10000)
     
 #define inMapHigh                    (227)
 #define inMapWidth                   (227)
@@ -31,6 +34,7 @@ namespace slqDL {
 #define c1ConvWidth                  (11)
 #define c1ConvDeep                   (3)
 #define c1ConvStride                 (4)
+#define c1ConvTensor                 (121)                            // 11*11
 #define c1ConvSize                   (363)                            // 11*11*3
 #define c1ConvNum                    (96)
 #define c1ConvUNum                   (34848)                          // 11*11*3*96
@@ -51,6 +55,7 @@ namespace slqDL {
 #define c2ConvWidth                  (5)
 #define c2ConvDeep                   (48)                            // 96/2
 #define c2ConvStride                 (1)
+#define c2ConvTensor                 (25)                            // 5*5
 #define c2ConvSize                   (1200)                          // 5*5*48
 #define c2ConvNum                    (256)
 #define c2ConvUNum                   (307200)                        // 5*5*48*256
@@ -71,6 +76,7 @@ namespace slqDL {
 #define c3ConvWidth                  (3)
 #define c3ConvDeep                   (256)
 #define c3ConvStride                 (1)
+#define c3ConvTensor                 (9)                             // 3*3
 #define c3ConvSize                   (2304)                          // 3*3*256
 #define c3ConvNum                    (384)
 #define c3ConvUNum                   (884736)                        // 3*3*256*384
@@ -86,6 +92,7 @@ namespace slqDL {
 #define c4ConvWidth                  (3)
 #define c4ConvDeep                   (192)                           // 384/2
 #define c4ConvStride                 (1)
+#define c4ConvTensor                 (9)                             // 3*3
 #define c4ConvSize                   (1728)                          // 3*3*192
 #define c4ConvNum                    (384)
 #define c4ConvUNum                   (663552)                        // 3*3*192*384
@@ -100,6 +107,7 @@ namespace slqDL {
 #define c5ConvWidth                  (3)
 #define c5ConvDeep                   (192)                           // 384/2
 #define c5ConvStride                 (1)
+#define c5ConvTensor                 (9)                             // 3*3
 #define c5ConvSize                   (1728)                          // 3*3*192
 #define c5ConvNum                    (256)
 #define c5ConvUNum                   (442368)                        // 3*3*192*256
@@ -111,6 +119,15 @@ namespace slqDL {
 #define s5UnitNum                    (9216)                          // 6*6*256
     
 #define f1UnitNum                    (4096)
+#define f1MapHigh                    (1)
+#define f1MapWidth                   (1)
+#define f1MapSize                    (1)
+
+#define f1ConvHigh                   (5)
+#define f1ConvWidth                  (5)
+#define f1ConvDeep                   (256)
+#define f1ConvStride                 (1)
+#define f1ConvTensor                 (25)                            // 5*5
 #define f1ConnNum                    (37748736)                      // 6*6*256*4096
     
 #define f2UnitNum                    (4096)
@@ -122,7 +139,7 @@ namespace slqDL {
 #define ACTIVATION(x)                ((std::exp((x)) - std::exp(-1*(x))) / (std::exp((x)) + std::exp(-1*(x))))
 #define ACTDEVICE(x)                 ((1 - ((x))*((x))))
     
-    } // end namespace slqAlexNet
+  } // end namespace slqAlexNet
 } // end namespace slqDL
 
 
