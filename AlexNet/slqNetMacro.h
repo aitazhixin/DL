@@ -136,8 +136,10 @@ namespace slqDL {
 #define f3UnitNum                    (1000)
 #define f3ConnNum                    (4096000)                       // 4096*1000
     
-#define ACTIVATION(x)                ((std::exp((x)) - std::exp(-1*(x))) / (std::exp((x)) + std::exp(-1*(x))))
-#define ACTDEVICE(x)                 ((1 - ((x))*((x))))
+//#define ACTIVATION(x)                ((std::exp((x)) - std::exp(-1*(x))) / (std::exp((x)) + std::exp(-1*(x))))
+//#define ACTDEVICE(x)                 ((1 - ((x))*((x))))
+#define ACTIVATION(x)                (((x) > 0 ? (x) : 0))
+#define ACTDEVICE(x)                 (((x) > 0 ? 1 : 0))
     
   } // end namespace slqAlexNet
 } // end namespace slqDL

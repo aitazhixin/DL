@@ -67,6 +67,8 @@ namespace slqDL {
             
         private:
             bool CONV3Table[c3ConvNum][c3ConvDeep];
+            bool F1Table[s5UnitNum][f1UnitNum];
+            bool F2Table[f1UnitNum][f2UnitNum];
             char curLabl;
 
             float *mlabel;
