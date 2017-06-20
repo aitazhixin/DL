@@ -151,21 +151,6 @@ namespace slqDL {
                     trainStream.read(inRaw, sizeof(char)*inUnitNum);
                     trainlabel.read(&curLabl, sizeof(char));
 
-                    //Mat img(227, 227, CV_8UC1);
-                    //memcpy((char*)img.data, inRaw, 227*227);
-                    //cv::namedWindow("inRaw");
-                    //cv::imshow("inRaw", img);
-                    //cv::waitKey(0);
-
-                    //memcpy((char*)img.data, inRaw + 227*227, 227 * 227);
-                    //cv::namedWindow("inRaw");
-                    //cv::imshow("inRaw", img);
-                    //cv::waitKey(0);
-
-                    //memcpy((char*)img.data, inRaw + 227*227*2, 227 * 227);
-                    //cv::namedWindow("inRaw");
-                    //cv::imshow("inRaw", img);
-                    //cv::waitKey(0);
 
                     ProduceLabel();
                     RegularMap(inRaw, inMap);
@@ -197,6 +182,7 @@ namespace slqDL {
                     UpgradeNetwork();
 
                     ipo++;
+                    cout << "img pock " << ipo << " current label " << (int)curLabl << endl;
                 }
 
                 trainlabel.close();
@@ -230,18 +216,6 @@ namespace slqDL {
             int iIdx;
 #define AO true
 #define AX false
-            for (oIdx = 0; oIdx < c3ConvNum; oIdx++)
-            {
-                for (iIdx = 0; iIdx < c3ConvDeep; iIdx++)
-                {
-                    if ((oIdx >= iIdx) && (oIdx < iIdx + c3ConvDeep/2))
-                    {
-                        CONV3Table[oIdx][iIdx] = AX;
-                        continue;
-                    }
-                    CONV3Table[oIdx][iIdx] = AO;
-                }
-            }
 
             for (oIdx = 0; oIdx < s5UnitNum; oIdx++)
             {
@@ -304,6 +278,9 @@ namespace slqDL {
             std::fill(c2Bias, c2Bias + c2MapNum, 1.0f);
             std::fill(c4Bias, c4Bias + c4MapNum, 1.0f);
             std::fill(c5Bias, c5Bias + c5MapNum, 1.0f);
+            std::fill(f1Bias, f1Bias + f1UnitNum, 1.0f);
+            std::fill(f2Bias, f2Bias + f2UnitNum, 1.0f);
+            //std::fill(f3Bias, f3Bias + f3UnitNum, 1.0f);
 
         }
 
@@ -425,8 +402,8 @@ namespace slqDL {
         {
             int params[] = {s1MapNum, c1MapHigh, c1MapWidth, s1MapHigh, s1MapWidth, poolSpace, poolStride, 2};
 
-            float tmp[c1UnitNum];
-            memcpy((char*)tmp, (char*)c1Map, sizeof(float)*c1UnitNum);
+            //float tmp[c1UnitNum];
+            //memcpy((char*)tmp, (char*)c1Map, sizeof(float)*c1UnitNum);
             
             std::fill(s1Map, s1Map + s1UnitNum, 0.f);
             PoolingOpt(c1Map, s1Map, s1Pool, s1Bias, params);
@@ -437,8 +414,8 @@ namespace slqDL {
         {
             int params[] = { s1MapNum / 2, c2MapNum / 2, s1MapHigh, s1MapWidth, c2MapHigh, c2MapWidth, c2ConvHigh, c2ConvWidth, c2ConvStride, 0 };
 
-            float tmp[s1UnitNum];
-            memcpy((char*)tmp, (char*)s1Map, sizeof(float)*s1UnitNum);
+            //float tmp[s1UnitNum];
+            //memcpy((char*)tmp, (char*)s1Map, sizeof(float)*s1UnitNum);
 
             std::fill(c2Map, c2Map + c2UnitNum, 0.f);
             ConvolutionOpt(s1Map, c2Map, c2Conv, c2Bias, params);
@@ -452,8 +429,8 @@ namespace slqDL {
         {
             int params[] = { s2MapNum, c2MapHigh, c2MapWidth, s2MapHigh, s2MapWidth, poolSpace, poolStride, 1 };
 
-            float tmp[c2UnitNum];
-            memcpy((char*)tmp, (char*)c2Map, sizeof(float)*c2UnitNum);
+            //float tmp[c2UnitNum];
+            //memcpy((char*)tmp, (char*)c2Map, sizeof(float)*c2UnitNum);
 
             std::fill(s2Map, s2Map + s2UnitNum, 0.f);
             PoolingOpt(c2Map, s2Map, s2Pool, s2Bias, params);
@@ -464,8 +441,8 @@ namespace slqDL {
         {
             int params[] = { s2MapNum, c3MapNum, s2MapHigh, s2MapWidth, c3MapHigh, c3MapWidth, c3ConvHigh, c3ConvWidth, c3ConvStride, 1 };
 
-            float tmp[s2UnitNum];
-            memcpy((char*)tmp, (char*)s2Map, sizeof(float)*s2UnitNum);
+            //float tmp[s2UnitNum];
+            //memcpy((char*)tmp, (char*)s2Map, sizeof(float)*s2UnitNum);
 
             std::fill(c3Map, c3Map + c3UnitNum, 0.f);
             ConvolutionOpt(s2Map, c3Map, c3Conv, c3Bias, params);            
@@ -477,8 +454,8 @@ namespace slqDL {
         {
             int params[] = { c3MapNum / 2, c4MapNum / 2, c3MapHigh, c3MapWidth, c4MapHigh, c4MapWidth, c4ConvHigh, c4ConvWidth, c4ConvStride, 1 };
 
-            float tmp[c3UnitNum];
-            memcpy((char*)tmp, (char*)c3Map, sizeof(float)*c3UnitNum);
+            //float tmp[c3UnitNum];
+            //memcpy((char*)tmp, (char*)c3Map, sizeof(float)*c3UnitNum);
 
             std::fill(c4Map, c4Map + c4UnitNum, 0.f);
             ConvolutionOpt(c3Map, c4Map, c4Conv, c4Bias, params);
@@ -492,8 +469,8 @@ namespace slqDL {
         {
             int params[] = { c4MapNum / 2, c5MapNum / 2, c4MapHigh, c4MapWidth, c5MapHigh, c5MapWidth, c5ConvHigh, c5ConvWidth, c5ConvStride, 0 };
 
-            float tmp[c4UnitNum];
-            memcpy((char*)tmp, (char*)c4Map, sizeof(float)*c4UnitNum);
+            //float tmp[c4UnitNum];
+            //memcpy((char*)tmp, (char*)c4Map, sizeof(float)*c4UnitNum);
 
             std::fill(c5Map, c5Map + c5UnitNum, 0.f);
             ConvolutionOpt(c4Map, c5Map, c5Conv, c5Bias, params);
@@ -507,8 +484,8 @@ namespace slqDL {
         {
             int params[] = { s5MapNum, c5MapHigh, c5MapWidth, s5MapHigh, s5MapWidth, poolSpace, poolStride, 0 };
 
-            float tmp[c5UnitNum];
-            memcpy((char*)tmp, (char*)c5Map, sizeof(float)*c5UnitNum);
+            //float tmp[c5UnitNum];
+            //memcpy((char*)tmp, (char*)c5Map, sizeof(float)*c5UnitNum);
 
             std::fill(s5Map, s5Map + s5UnitNum, 0.f);
             PoolingOpt(c5Map, s5Map, s5Pool, s5Bias, params);
@@ -521,8 +498,8 @@ namespace slqDL {
             int oIdx;
             int iIdx;
 
-            float tmp[s5UnitNum];
-            memcpy((char*)tmp, (char*)s5Map, sizeof(float)*s5UnitNum);
+            //float tmp[s5UnitNum];
+            //memcpy((char*)tmp, (char*)s5Map, sizeof(float)*s5UnitNum);
 
             std::fill(f1Map, f1Map + f1UnitNum, 0.f);
             for (oIdx = 0; oIdx < f1UnitNum; oIdx++)
@@ -548,8 +525,8 @@ namespace slqDL {
             int iIdx;
 
 
-            float tmp[f1UnitNum];
-            memcpy((char*)tmp, (char*)f1Map, sizeof(float)*f1UnitNum);
+            //float tmp[f1UnitNum];
+            //memcpy((char*)tmp, (char*)f1Map, sizeof(float)*f1UnitNum);
 
             std::fill(f2Map, f2Map + f2UnitNum, 0.f);
             for (oIdx = 0; oIdx < f2UnitNum; oIdx++)
@@ -575,8 +552,8 @@ namespace slqDL {
             int iIdx;
 
 
-            float tmp[f2UnitNum];
-            memcpy((char*)tmp, (char*)f2Map, sizeof(float)*f2UnitNum);
+            //float tmp[f2UnitNum];
+            //memcpy((char*)tmp, (char*)f2Map, sizeof(float)*f2UnitNum);
 
 
             std::fill(f3Map, f3Map + f3UnitNum, 0.f);
@@ -589,7 +566,8 @@ namespace slqDL {
                 }
 
                 *curmap += f3Bias[oIdx];
-                *curmap = ACTIVATION(*curmap);
+                //*curmap = ACTIVATION(*curmap);
+                *curmap = ACTH(*curmap);
             }
         }
 
@@ -604,7 +582,8 @@ namespace slqDL {
 
             for (oIdx = 0; oIdx < f3UnitNum; oIdx++)
             {
-                f3MapDt[oIdx] = (f3Map[oIdx] - mlabel[oIdx]) * ACTDEVICE(f3Map[oIdx]);
+                //f3MapDt[oIdx] = (f3Map[oIdx] - mlabel[oIdx]) * ACTDEVICE(f3Map[oIdx]);
+                f3MapDt[oIdx] = (f3Map[oIdx] - mlabel[oIdx]) * ACTD(f3Map[oIdx]);
                 f3BiasDt[oIdx] = f3MapDt[oIdx];
 
 
@@ -711,7 +690,8 @@ namespace slqDL {
                             curdt += f1MapDt[iIdx] * f1Conn[(iod + owIdx)*f1UnitNum + iIdx];
                         }
 
-                        s5MapDt[iod + owIdx] = ACTDEVICE(s5Map[iod + owIdx]) * curdt;
+                        //s5MapDt[iod + owIdx] = ACTD(s5Map[iod + owIdx]) * curdt;
+                        s5MapDt[iod + owIdx] = curdt;
                         s5BiasDt[odeepIdx] += s5MapDt[iod + owIdx];
 
                         float *curin = c5Map + odeepIdx * c5MapSize + ohIdx * poolStride * c5MapWidth + owIdx * poolStride;
@@ -753,10 +733,12 @@ namespace slqDL {
             {
                 for (ohIdx = 0; ohIdx < s5MapHigh; ohIdx++)
                 {
+                    int chi = odeepIdx * c5MapSize + ohIdx * poolStride * c5MapWidth;
+                    int shi = odeepIdx * s5MapSize + ohIdx * s5MapWidth;
                     for (owIdx = 0; owIdx < s5MapWidth; owIdx++)
                     {
-                        iod = odeepIdx * c5MapSize + ohIdx * poolStride * c5MapWidth + owIdx * poolStride;
-                        vod = odeepIdx * s5MapSize + ohIdx * s5MapWidth + owIdx;
+                        iod = chi + owIdx * poolStride;
+                        vod = shi + owIdx;
                         float curmax = FLT_MIN;
                         int hmax = 0;
                         int wmax = 0;
@@ -785,21 +767,26 @@ namespace slqDL {
 
             for (odeepIdx = 0; odeepIdx < c5MapNum / 2; odeepIdx++)
             {
+                int om5 = odeepIdx * c5MapSize;
                 for (ideepIdx = 0; ideepIdx < c5ConvDeep; ideepIdx++)
                 {
+                    int oI_m_cvs = odeepIdx * c5ConvSize + ideepIdx * c5ConvTensor;
+                    int im4 = ideepIdx * c4MapSize;
                     for (phIdx = 0; phIdx < c5ConvHigh; phIdx++)
                     {
                         for (pwIdx = 0; pwIdx < c5ConvWidth; pwIdx++)
                         {
-                            iod = odeepIdx * c5ConvSize + ideepIdx * c5ConvTensor + phIdx * c5ConvWidth + pwIdx;
+                            iod = oI_m_cvs + phIdx * c5ConvWidth + pwIdx;
+
+                            int sv = im4 + phIdx * c4MapWidth + pwIdx;
                             float *curconv = c5ConvDt + iod;
 
                             for (ohIdx = 0; ohIdx < c5MapHigh; ohIdx++)
                             {
                                 for (owIdx = 0; owIdx < c5MapWidth; owIdx++)
                                 {
-                                    svh = ideepIdx * c4MapSize + (phIdx + ohIdx * c5ConvStride)*c4MapWidth + (pwIdx + owIdx * c5ConvStride);
-                                    vod = odeepIdx * c5MapSize + ohIdx * c5MapWidth + owIdx;
+                                    svh = sv + ohIdx * c5ConvStride * c4MapWidth + owIdx * c5ConvStride;
+                                    vod = om5 + ohIdx * c5MapWidth + owIdx;
                                     *curconv += c4Map[svh] * c5MapDt[vod];
                                 }
                             }
@@ -810,21 +797,26 @@ namespace slqDL {
 
             for (odeepIdx = c5MapNum / 2; odeepIdx < c5MapNum; odeepIdx++)
             {
+                int om5 = odeepIdx * c5MapSize;
                 for (ideepIdx = c5ConvDeep; ideepIdx < c4MapNum; ideepIdx++)
                 {
+                    int oI_m_cvs = odeepIdx * c5ConvSize + (ideepIdx - c5ConvDeep) * c5ConvTensor;
+                    int im4 = ideepIdx * c4MapSize;
                     for (phIdx = 0; phIdx < c5ConvHigh; phIdx++)
                     {
                         for (pwIdx = 0; pwIdx < c5ConvWidth; pwIdx++)
                         {
-                            iod = odeepIdx * c5ConvSize + (ideepIdx - c5ConvDeep) * c5ConvTensor + phIdx * c5ConvWidth + pwIdx;
+                            iod = oI_m_cvs + phIdx * c5ConvWidth + pwIdx;
+
+                            int sv = im4 + phIdx * c4MapWidth + pwIdx;
                             float *curconv = c5ConvDt + iod;
 
                             for (ohIdx = 0; ohIdx < c5MapHigh; ohIdx++)
                             {
                                 for (owIdx = 0; owIdx < c5MapWidth; owIdx++)
                                 {
-                                    svh = ideepIdx * c4MapSize + (phIdx + ohIdx * c5ConvStride)*c4MapWidth + (pwIdx + owIdx * c5ConvStride);
-                                    vod = odeepIdx * c5MapSize + ohIdx * c5MapWidth + owIdx;
+                                    svh = sv + ohIdx * c5ConvStride * c4MapWidth + owIdx * c5ConvStride;
+                                    vod = om5 + ohIdx * c5MapWidth + owIdx;
                                     *curconv += c4Map[svh] * c5MapDt[vod];
                                 }
                             }
@@ -854,19 +846,23 @@ namespace slqDL {
             std::fill(c4ConvDt, c4ConvDt + c4ConvUNum, 0.f);
             for (odeepIdx = 0; odeepIdx < c4MapNum / 2; odeepIdx++)
             {
+                int om4 = odeepIdx * c4MapSize;
                 for (ideepIdx = 0; ideepIdx < c5MapNum / 2; ideepIdx++)
                 {
+                    int ioI = ideepIdx * c5ConvSize + odeepIdx * c5ConvTensor;
+                    int im5 = ideepIdx * c5MapSize;
                     for (phIdx = 0; phIdx < c5ConvHigh; phIdx++)
                     {
                         for (pwIdx = 0; pwIdx < c5ConvWidth; pwIdx++)
                         {
-                            svh = ideepIdx * c5ConvSize + odeepIdx * c5ConvTensor + phIdx * c5ConvWidth + pwIdx;
+                            int ioh = om4 + phIdx * c4MapWidth + pwIdx;
+                            svh = ioI + phIdx * c5ConvWidth + pwIdx;
                             for (ohIdx = 0; ohIdx < c5MapHigh; ohIdx++)
                             {
                                 for (owIdx = 0; owIdx < c5MapWidth; owIdx++)
                                 {
-                                    iod = odeepIdx * c4MapSize + (phIdx + ohIdx * c5ConvStride) * c4MapWidth + (pwIdx + owIdx * c5ConvStride);
-                                    vod = ideepIdx * c5MapSize + ohIdx * c5MapWidth + owIdx;
+                                    iod = ioh + ohIdx * c5ConvStride * c4MapWidth + owIdx * c5ConvStride;
+                                    vod = im5 + ohIdx * c5MapWidth + owIdx;
                                     c4MapDt[iod] += ACTDEVICE(c4Map[iod]) * c5Conv[svh] * c5MapDt[vod];
                                 }
                             }
@@ -877,19 +873,23 @@ namespace slqDL {
 
             for (odeepIdx = c4MapNum / 2; odeepIdx < c4MapNum; odeepIdx++)
             {
+                int om4 = odeepIdx * c4MapSize;
                 for (ideepIdx = c5MapNum / 2; ideepIdx < c5MapNum; ideepIdx++)
                 {
+                    int ioI = ideepIdx * c5ConvSize + (odeepIdx - c5ConvDeep) * c5ConvTensor;
+                    int im5 = ideepIdx * c5MapSize;
                     for (phIdx = 0; phIdx < c5ConvHigh; phIdx++)
                     {
                         for (pwIdx = 0; pwIdx < c5ConvWidth; pwIdx++)
                         {
-                            svh = ideepIdx * c5ConvSize + (odeepIdx - c5ConvDeep) * c5ConvTensor + phIdx * c5ConvWidth + pwIdx;
+                            int ioh = om4 + phIdx * c4MapWidth + pwIdx;
+                            svh = ioI + phIdx * c5ConvWidth + pwIdx;
                             for (ohIdx = 0; ohIdx < c5MapHigh; ohIdx++)
                             {
                                 for (owIdx = 0; owIdx < c5MapWidth; owIdx++)
                                 {
-                                    iod = odeepIdx * c4MapSize + (phIdx + ohIdx * c5ConvStride) * c4MapWidth + (pwIdx + owIdx * c5ConvStride);
-                                    vod = ideepIdx * c5MapSize + ohIdx * c5MapWidth + owIdx;
+                                    iod = ioh + ohIdx * c5ConvStride * c4MapWidth + owIdx * c5ConvStride;
+                                    vod = im5 + ohIdx * c5MapWidth + owIdx;
                                     c4MapDt[iod] += ACTDEVICE(c4Map[iod]) * c5Conv[svh] * c5MapDt[vod];
                                 }
                             }
@@ -900,19 +900,23 @@ namespace slqDL {
 
             for (odeepIdx = 0; odeepIdx < c4MapNum / 2; odeepIdx++)
             {
+                int om4 = odeepIdx * c4MapSize;
                 for (ideepIdx = 0; ideepIdx < c4ConvDeep; ideepIdx++)
                 {
+                    int im3 = ideepIdx * c3MapSize;
+                    int ioI = odeepIdx * c4ConvSize + ideepIdx * c4ConvTensor;
                     for (phIdx = 0; phIdx < c4ConvHigh; phIdx++)
                     {
                         for (pwIdx = 0; pwIdx < c4ConvWidth; pwIdx++)
                         {
-                            iod = odeepIdx * c4ConvSize + ideepIdx * c4ConvTensor + phIdx * c4ConvWidth + pwIdx;
+                            int ioh = im3 + phIdx * c3MapWidth + pwIdx;
+                            iod = ioI + phIdx * c4ConvWidth + pwIdx;
                             for (ohIdx = 1; ohIdx < c4MapHigh - 1; ohIdx++)
                             {
                                 for (owIdx = 1; owIdx < c4MapWidth - 1; owIdx++)
                                 {
-                                    vod = odeepIdx * c4MapSize + ohIdx * c4MapWidth + owIdx;
-                                    svh = ideepIdx * c3MapSize + ((ohIdx - 1) * c4ConvStride + phIdx) * c3MapWidth + ((owIdx - 1) * c4ConvStride + pwIdx);
+                                    vod = om4 + ohIdx * c4MapWidth + owIdx;
+                                    svh = ioh + (ohIdx - 1) * c4ConvStride * c3MapWidth + (owIdx - 1) * c4ConvStride;
                                     c4BiasDt[odeepIdx] += c4MapDt[vod];
                                     c4ConvDt[iod] += c3Map[svh] * c4MapDt[vod];
                                 }
@@ -924,19 +928,23 @@ namespace slqDL {
 
             for (odeepIdx = c4MapNum / 2; odeepIdx < c4MapNum; odeepIdx++)
             {
+                int om4 = odeepIdx * c4MapSize;
                 for (ideepIdx = c4ConvDeep; ideepIdx < c3MapNum; ideepIdx++)
                 {
+                    int im3 = ideepIdx * c3MapSize;
+                    int ioI = odeepIdx * c4ConvSize + (ideepIdx - c4ConvDeep) * c4ConvTensor;
                     for (phIdx = 0; phIdx < c4ConvHigh; phIdx++)
                     {
                         for (pwIdx = 0; pwIdx < c4ConvWidth; pwIdx++)
                         {
-                            iod = odeepIdx * c4ConvSize + (ideepIdx - c4ConvDeep) * c4ConvTensor + phIdx * c4ConvWidth + pwIdx;
+                            int ioh = im3 + phIdx * c3MapWidth + pwIdx;
+                            iod = ioI + phIdx * c4ConvWidth + pwIdx;
                             for (ohIdx = 1; ohIdx < c4MapHigh - 1; ohIdx++)
                             {
                                 for (owIdx = 1; owIdx < c4MapWidth - 1; owIdx++)
                                 {
-                                    vod = odeepIdx * c4MapSize + ohIdx * c4MapWidth + owIdx;
-                                    svh = ideepIdx * c3MapSize + ((ohIdx - 1)  * c4ConvStride + phIdx) * c3MapWidth + ((owIdx - 1) * c4ConvStride + pwIdx);
+                                    vod = om4 + ohIdx * c4MapWidth + owIdx;
+                                    svh = ioh + (ohIdx - 1) * c4ConvStride * c3MapWidth + (owIdx - 1) * c4ConvStride;
                                     c4BiasDt[odeepIdx] += c4MapDt[vod];
                                     c4ConvDt[iod] += c3Map[svh] * c4MapDt[vod];
                                 }
@@ -967,19 +975,23 @@ namespace slqDL {
             std::fill(c3ConvDt, c3ConvDt + c3ConvUNum, 0.f);
             for (odeepIdx = 0; odeepIdx < c3MapNum / 2; odeepIdx++)
             {
+                int om3 = odeepIdx * c3MapSize;
                 for (ideepIdx = 0; ideepIdx < c4MapNum / 2; ideepIdx++)
                 {
+                    int im4 = ideepIdx * c4MapSize;
+                    int ioh = ideepIdx * c4ConvSize + odeepIdx * c4ConvTensor;
                     for (phIdx = 0; phIdx < c4ConvHigh; phIdx++)
                     {
                         for (pwIdx = 0; pwIdx < c4ConvWidth; pwIdx++)
                         {
-                            svh = ideepIdx * c4ConvSize + odeepIdx * c4ConvTensor + phIdx * c4ConvWidth + pwIdx;
+                            int iod = om3 + phIdx * c3MapWidth + pwIdx;
+                            svh = ioh + phIdx * c4ConvWidth + pwIdx;
                             for (ohIdx = 1; ohIdx < c4MapHigh - 1; ohIdx++)
                             {
                                 for (owIdx = 1; owIdx < c4MapWidth - 1; owIdx++)
                                 {
-                                    iod = odeepIdx * c3MapSize + (phIdx + (ohIdx - 1) * c4ConvStride) * c3MapWidth + (pwIdx + (owIdx - 1) * c4ConvStride);
-                                    vod = ideepIdx * c4MapSize + ohIdx * c4MapWidth + owIdx;
+                                    iod = iod + (ohIdx - 1) * c4ConvStride * c3MapWidth + (owIdx - 1) * c4ConvStride;
+                                    vod = im4 + ohIdx * c4MapWidth + owIdx;
                                     c3MapDt[iod] += ACTDEVICE(c3Map[iod]) * c4Conv[svh] * c4MapDt[vod];
                                 }
                             }
@@ -990,19 +1002,23 @@ namespace slqDL {
 
             for (odeepIdx = c3MapNum / 2; odeepIdx < c3MapNum; odeepIdx++)
             {
+                int om3 = odeepIdx * c3MapSize;
                 for (ideepIdx = c4MapNum / 2; ideepIdx < c4MapNum; ideepIdx++)
                 {
+                    int im4 = ideepIdx * c4MapSize;
+                    int ioh = ideepIdx * c4ConvSize + (odeepIdx - c4ConvDeep) * c4ConvTensor;
                     for (phIdx = 0; phIdx < c4ConvHigh; phIdx++)
                     {
                         for (pwIdx = 0; pwIdx < c4ConvWidth; pwIdx++)
                         {
-                            svh = ideepIdx * c4ConvSize + (odeepIdx - c4ConvDeep) * c4ConvTensor + phIdx * c4ConvWidth + pwIdx;
+                            int iod = om3 + phIdx * c3MapWidth + pwIdx;
+                            svh = ioh + phIdx * c4ConvWidth + pwIdx;
                             for (ohIdx = 1; ohIdx < c4MapHigh - 1; ohIdx++)
                             {
                                 for (owIdx = 1; owIdx < c4MapWidth - 1; owIdx++)
                                 {
-                                    iod = odeepIdx * c3MapSize + (phIdx + (ohIdx - 1) * c4ConvStride) * c3MapWidth + (pwIdx + (owIdx - 1) * c4ConvStride);
-                                    vod = ideepIdx * c4MapSize + ohIdx * c4MapWidth + owIdx;
+                                    iod = iod + (ohIdx - 1) * c4ConvStride * c3MapWidth + (owIdx - 1) * c4ConvStride;
+                                    vod = im4 + ohIdx * c4MapWidth + owIdx;
                                     c3MapDt[iod] += ACTDEVICE(c3Map[iod]) * c4Conv[svh] * c4MapDt[vod];
                                 }
                             }
@@ -1013,22 +1029,22 @@ namespace slqDL {
 
             for (odeepIdx = 0; odeepIdx < c3MapNum; odeepIdx++)
             {
+                int om3 = odeepIdx * c3MapSize;
                 for (ideepIdx = 0; ideepIdx < c3ConvDeep; ideepIdx++)
                 {
-                    if (!CONV3Table[odeepIdx][ideepIdx])
-                        continue;
-
+                    int is2 = ideepIdx * s2MapSize;
                     for (phIdx = 0; phIdx < c3ConvHigh; phIdx++)
                     {
                         for (pwIdx = 0; pwIdx < c3ConvWidth; pwIdx++)
                         {
+                            int ioh = is2 + phIdx * s2MapWidth + pwIdx;
                             iod = odeepIdx * c3ConvSize + ideepIdx * c3ConvTensor + phIdx * c3ConvWidth + pwIdx;
                             for (ohIdx = 1; ohIdx < c3MapHigh - 1; ohIdx++)
                             {
                                 for (owIdx = 1; owIdx < c3MapWidth - 1; owIdx++)
                                 {
-                                    vod = odeepIdx * c3MapSize + ohIdx * c3MapWidth + owIdx;
-                                    svh = ideepIdx * s2MapSize + ((ohIdx - 1) * c3ConvStride + phIdx) * s2MapWidth + ((owIdx - 1) * c3ConvStride + pwIdx);
+                                    vod = om3 + ohIdx * c3MapWidth + owIdx;
+                                    svh = ioh + (ohIdx - 1) * c3ConvStride * s2MapWidth + (owIdx - 1) * c3ConvStride;
                                     c3BiasDt[odeepIdx] += c3MapDt[vod];
                                     c3ConvDt[iod] += c3MapDt[vod] * s2Map[svh];
                                 }
@@ -1060,9 +1076,6 @@ namespace slqDL {
             {
                 for (ideepIdx = 0; ideepIdx < c3MapNum; ideepIdx++)
                 {
-                    if (!CONV3Table[ideepIdx][odeepIdx])
-                        continue;
-
                     for (phIdx = 0; phIdx < c3ConvHigh; phIdx++)
                     {
                         for (pwIdx = 0; pwIdx < c3ConvWidth; pwIdx++)
@@ -1074,7 +1087,8 @@ namespace slqDL {
                                 {
                                     iod = odeepIdx * s2MapSize + (phIdx + (ohIdx - 1) * c3ConvStride) * s2MapWidth + (pwIdx + (owIdx - 1) * c3ConvStride);
                                     vod = ideepIdx * c3MapSize + ohIdx * c3MapWidth + owIdx;
-                                    s2MapDt[iod] += ACTDEVICE(s2Map[iod]) * c3Conv[svh] * c3MapDt[vod];
+                                    //s2MapDt[iod] += ACTD(s2Map[iod]) * c3Conv[svh] * c3MapDt[vod];
+                                    s2MapDt[iod] += c3Conv[svh] * c3MapDt[vod];
                                 }
                             }
                         }
@@ -1241,7 +1255,8 @@ namespace slqDL {
                                 {
                                     iod = odeepIdx * s1MapSize + (ohIdx * c2ConvStride + phIdx) * s1MapWidth + (owIdx * c2ConvStride + pwIdx);
                                     svh = ideepIdx * c2MapSize + ohIdx * c2MapWidth + owIdx;
-                                    s1MapDt[iod] += ACTDEVICE(s1Map[iod]) * c2Conv[vod] * c2MapDt[svh];
+                                    //s1MapDt[iod] += ACTD(s1Map[iod]) * c2Conv[vod] * c2MapDt[svh];
+                                    s1MapDt[iod] += c2Conv[vod] * c2MapDt[svh];
                                 }
                             }
                         }
@@ -1381,52 +1396,62 @@ namespace slqDL {
         }
 
 
-
         void slqAlexNet::UpgradeNetwork()
         {
-            UpdateParameters(c1ConvDt, c1ConvEDt, c1Conv, c1ConvUNum);
-            UpdateParameters(c1BiasDt, c1BiasEDt, c1Bias, c1MapNum);
+            UpdateWeight(c1ConvDt, c1ConvEDt, c1Conv, c1ConvUNum);
+            UpdateBias(c1BiasDt, c1BiasEDt, c1Bias, c1MapNum);
 
-            UpdateParameters(s1PoolDt, s1PoolEDt, s1Pool, s1MapNum);
-            UpdateParameters(s1BiasDt, s1BiasEDt, s1Bias, s1MapNum);
+            UpdateWeight(s1PoolDt, s1PoolEDt, s1Pool, s1MapNum);
+            UpdateBias(s1BiasDt, s1BiasEDt, s1Bias, s1MapNum);
 
-            UpdateParameters(c2ConvDt, c2ConvEDt, c2Conv, c2ConvUNum);
-            UpdateParameters(c2BiasDt, c2BiasEDt, c2Bias, c2MapNum);
+            UpdateWeight(c2ConvDt, c2ConvEDt, c2Conv, c2ConvUNum);
+            UpdateBias(c2BiasDt, c2BiasEDt, c2Bias, c2MapNum);
 
-            UpdateParameters(s2PoolDt, s2PoolEDt, s2Pool, s2MapNum);
-            UpdateParameters(s2BiasDt, s2BiasEDt, s2Bias, s2MapNum);
+            UpdateWeight(s2PoolDt, s2PoolEDt, s2Pool, s2MapNum);
+            UpdateBias(s2BiasDt, s2BiasEDt, s2Bias, s2MapNum);
 
-            UpdateParameters(c3ConvDt, c3ConvEDt, c3Conv, c3ConvUNum);
-            UpdateParameters(c3BiasDt, c3BiasEDt, c3Bias, c3MapNum);
+            UpdateWeight(c3ConvDt, c3ConvEDt, c3Conv, c3ConvUNum);
+            UpdateBias(c3BiasDt, c3BiasEDt, c3Bias, c3MapNum);
 
-            UpdateParameters(c4ConvDt, c4ConvEDt, c4Conv, c4ConvUNum);
-            UpdateParameters(c4BiasDt, c4BiasEDt, c4Bias, c4MapNum);
+            UpdateWeight(c4ConvDt, c4ConvEDt, c4Conv, c4ConvUNum);
+            UpdateBias(c4BiasDt, c4BiasEDt, c4Bias, c4MapNum);
 
-            UpdateParameters(c5ConvDt, c5ConvEDt, c5Conv, c5ConvUNum);
-            UpdateParameters(c5BiasDt, c5BiasEDt, c5Bias, c5MapNum);
+            UpdateWeight(c5ConvDt, c5ConvEDt, c5Conv, c5ConvUNum);
+            UpdateBias(c5BiasDt, c5BiasEDt, c5Bias, c5MapNum);
 
-            UpdateParameters(s5PoolDt, s5PoolEDt, s5Pool, s5MapNum);
-            UpdateParameters(s5BiasDt, s5BiasEDt, s5Bias, s5MapNum);
+            UpdateWeight(s5PoolDt, s5PoolEDt, s5Pool, s5MapNum);
+            UpdateBias(s5BiasDt, s5BiasEDt, s5Bias, s5MapNum);
 
-            UpdateParameters(f1ConnDt, f1ConnEDt, f1Conn, f1ConnNum);
-            UpdateParameters(f1BiasDt, f1BiasEDt, f1Bias, f1UnitNum);
+            UpdateWeight(f1ConnDt, f1ConnEDt, f1Conn, f1ConnNum);
+            UpdateBias(f1BiasDt, f1BiasEDt, f1Bias, f1UnitNum);
 
-            UpdateParameters(f2ConnDt, f2ConnEDt, f2Conn, f2ConnNum);
-            UpdateParameters(f2BiasDt, f2BiasEDt, f2Bias, f2UnitNum);
+            UpdateWeight(f2ConnDt, f2ConnEDt, f2Conn, f2ConnNum);
+            UpdateBias(f2BiasDt, f2BiasEDt, f2Bias, f2UnitNum);
 
-            UpdateParameters(f3ConnDt, f3ConnEDt, f3Conn, f3ConnNum);
-            UpdateParameters(f3BiasDt, f3BiasEDt, f3Bias, f3UnitNum);
+            UpdateWeight(f3ConnDt, f3ConnEDt, f3Conn, f3ConnNum);
+            UpdateBias(f3BiasDt, f3BiasEDt, f3Bias, f3UnitNum);
         }
 
 
-        void slqAlexNet::UpdateParameters(float *delta, float *Edelta, float *para, int len)
+        void slqAlexNet::UpdateWeight(float *delta, float *Edelta, float *para, int len)
         {
             for (int lIdx = 0; lIdx < len; lIdx++)
             {
-                Edelta[lIdx] = 0.9f * Edelta[lIdx] - 0.0005 * Alpha * para[lIdx];
+                Edelta[lIdx] = 0.9f * Edelta[lIdx] - 0.0005f * Alpha * delta[lIdx];
                 para[lIdx] += Edelta[lIdx];
             }
         }
+
+
+        void slqAlexNet::UpdateBias(float *delta, float *Edelta, float *para, int len)
+        {
+            for (int lIdx = 0; lIdx < len; lIdx++)
+            {
+                Edelta[lIdx] += delta[lIdx] * delta[lIdx];
+                para[lIdx] -= Alpha * delta[lIdx] / std::sqrt(Edelta[lIdx] + EspCNN);
+            }
+        }
+
 
         void slqAlexNet::ConvolutionOpt(float *inPtr, float *outPtr, float *convPtr, float *biPtr, int param[])
         {
@@ -1468,9 +1493,6 @@ namespace slqDL {
 
                         for (ideepIdx = 0; ideepIdx < inMapNo; ideepIdx++)
                         {
-                            if ((inMapNo == s2MapNum) && (outMapNo == c3MapNum) && (!CONV3Table[odeepIdx][ideepIdx]))
-                                continue;
-
                             vod = odeepIdx * convsize + ideepIdx * convtsor;
                             svh = ideepIdx * insize + (ohIdx - expand) * convStride * inMapW + (owIdx - expand) * convStride;
 
@@ -1494,6 +1516,7 @@ namespace slqDL {
             }
 
         }
+
 
         void slqAlexNet::PoolingOpt(float *inPtr, float *outPtr, float *poolPtr, float *biPtr, int param[])
         {
@@ -1530,14 +1553,12 @@ namespace slqDL {
                         {
                             for (pwIdx = 0; pwIdx < poolspace; pwIdx++)
                             {
-                                //cur += *(curin + phIdx * imapW + pwIdx);
                                 cur = cur >(*(curin + phIdx * imapW + pwIdx)) ? cur : (*(curin + phIdx * imapW + pwIdx));
                             }
                         }
 
-                        //*curmap = cur / (poolspace * poolspace) + *(biPtr + deepIdx);
                         *curmap = cur + *(biPtr + deepIdx);
-                        *curmap = ACTIVATION(*curmap);
+                        //*curmap = ACTH(*curmap);
                     }
                 }
             }
@@ -1604,7 +1625,6 @@ namespace slqDL {
 
             return (prc / count);
         }
-
 
 
         void slqAlexNet::SaveParameters()
@@ -1710,13 +1730,13 @@ namespace slqDL {
             int lIdx;
             for (lIdx = 0; lIdx < f3UnitNum; lIdx++)
             {
-                if (curLabl == lIdx)
+                if ((int)curLabl == lIdx)
                 {
                     mlabel[lIdx] = 0.8f;
                 }
                 else
                 {
-                    mlabel[lIdx] = -0.8f;
+                    mlabel[lIdx] = 0.f;
                 }
             }
         }
@@ -1740,7 +1760,7 @@ namespace slqDL {
             for (mIdx = 0; mIdx < inMapSize; mIdx++)
             {
                 float cur = curc[mIdx] < 0 ? (curc[mIdx] + 256.f) : curc[mIdx];
-                curmap[mIdx] = (cur - minv) / (maxv - minv) * 2.f - 1.f;
+                curmap[mIdx] = (cur - minv) / (maxv - minv) * 256.f - 128.f;
             }
 
             maxv = -10.f;
@@ -1757,7 +1777,7 @@ namespace slqDL {
             for (mIdx = 0; mIdx < inMapSize; mIdx++)
             {
                 float cur = curc[mIdx] < 0 ? (curc[mIdx] + 256.f) : curc[mIdx];
-                curmap[mIdx] = (cur - minv) / (maxv - minv) * 2.f - 1.f;
+                curmap[mIdx] = (cur - minv) / (maxv - minv) * 256.f - 128.f;
             }
 
             maxv = -10.f;
@@ -1774,7 +1794,7 @@ namespace slqDL {
             for (mIdx = 0; mIdx < inMapSize; mIdx++)
             {
                 float cur = curc[mIdx] < 0 ? (curc[mIdx] + 256.f) : curc[mIdx];
-                curmap[mIdx] = (cur - minv) / (maxv - minv) * 2.f - 1.f;
+                curmap[mIdx] = (cur - minv) / (maxv - minv) * 256.f - 128.f;
             }
 
         }
