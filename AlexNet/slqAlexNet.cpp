@@ -1280,7 +1280,8 @@ namespace slqDL {
                                 {
                                     iod = odeepIdx * s1MapSize + (ohIdx * c2ConvStride + phIdx) * s1MapWidth + (owIdx * c2ConvStride + pwIdx);
                                     svh = (ideepIdx + c2ConvDeep) * c2MapSize + ohIdx * c2MapWidth + owIdx;
-                                    s1MapDt[iod] += ACTDEVICE(s1Map[iod]) * c2Conv[vod] * c2MapDt[svh];
+                                    //s1MapDt[iod] += ACTD(s1Map[iod]) * c2Conv[vod] * c2MapDt[svh];
+                                    s1MapDt[iod] += c2Conv[vod] * c2MapDt[svh];
                                 }
                             }
                         }
